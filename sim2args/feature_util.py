@@ -3,14 +3,25 @@
 import os
 import subprocess
 import numpy as np
+#import pandas as pd
+import allel
 import dendropy
 import tskit
 
 RELATE_PATH = '/sonas-hs/siepel/hpc_norepl/home/mo/sel_coef_empirical/relate_v1.0.16_x86_64_static/bin/'
 #RELATE_PATH = 'relate_v1.0.16_MacOSX/bin/'
 mut_rate = "2.5e-8"
-discretT = np.loadtxt('time.txt')
-discretT = discretT.astype(int)
+
+#discretT = np.loadtxt('time.txt')
+#discretT = discretT.astype(int)
+#K = len(discretT)
+delta= 0.001 
+tmax = 20000
+K = 1000
+discretT = []
+for i in range(2,K+2):
+    discretT.append((np.exp(i/(K-1)*np.log(1+delta*tmax))-1)/delta)
+discretT = np.round(discretT)
 
 def run_RELATE(pp, gtm, Ne): # pp- physical position; gtm: genotype matrix
     # create RELATE input files
@@ -78,14 +89,6 @@ def run_RELATE(pp, gtm, Ne): # pp- physical position; gtm: genotype matrix
 
 def xtract_fea(tree, var, base):
 
-    # delta= 0.001 
-    # tmax = 20000
-    # K = 1000
-    # discretT = []
-    # for i in range(2,K+2):
-    #     discretT.append((np.exp(i/(K-1)*np.log(1+delta*tmax))-1)/delta)
-    # discretT = np.round(discretT)
-
     distance_from_root = np.max(tree.calc_node_root_distances()) - discretT
     ones = np.where(var==1)[0] + base
     Canc = []
@@ -121,84 +124,25 @@ def xtract_fea(tree, var, base):
 
     return C
 
-def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, Ne):
-    '''Format input, run RELATE on variants of a simulated region and extract features of a region from inferred tree sequence'''
+def calc_H1(gt_mtx, pos):
 
-    # convert coordinate and resolve rounding duplicate
-    p = pos_ls * 1e5
-    p = np.round(p).astype(int)
-    while len(p) != len(np.unique(p)):
-        for k in range(1,len(p)):
-            if p[k] == p[k-1]:
-                p[k] = p[k-1] + 1
-                p = np.sort(p)
+	pos = np.around(pos * 100000) # convert position to coordinate in 100kb region
+    hArr = allel.HaplotypeArray(gt_mtx)
+    acArr = hArr.count_alleles() 
 
-    ts_inferred = run_RELATE(p, geno_mtx, Ne)
+    H1, H12, H123, H2H1 = allel.garud_h(hArr_allVar)
 
-    for tree in ts_inferred.trees():
-        left, right = map(int, tree.interval)
-        if left <= 50000 and right > 50000:
-            t = tree.newick(precision=1)
-            break
-    dp_tree = dendropy.Tree.get(data=t, schema="newick")
+    return H1
 
-    feature_mtx = xtract_fea(dp_tree, put_sel_var, 1) # 2 x 100
-
-    return feature_mtx
-
-def infer_ARG_fea_3(pos_ls, geno_mtx, put_sel_var, Ne):
-    '''Format input, run RELATE on variants of a simulated region and extract features of a region from inferred tree sequence'''
-
-    # convert coordinate and resolve rounding duplicate
-    p = pos_ls * 1e5
-    p = np.round(p).astype(int)
-    while len(p) != len(np.unique(p)):
-        for k in range(1,len(p)):
-            if p[k] == p[k-1]:
-                p[k] = p[k-1] + 1
-                p = np.sort(p)
-
-    ts_inferred = run_RELATE(p, geno_mtx, Ne)
-
-    center_found = False
-    for tree in ts_inferred.trees():
-        left, right = map(int, tree.interval)
-        
-        if center_found:
-            rTree = tree.newick(precision=1)
-            break
-        
-        if left <= 50000 and right > 50000:
-            cTree = tree.newick(precision=1)
-            center_found = True
-            a, b = left, right
-            continue
-            
-        lTree = tree.newick(precision=1)
-
-    l_var_pos = p[p<a].max()
-    r_var_pos = p[p>b].min()
-    l_var_idx = np.where(p==l_var_pos)[0][0]
-    c_var_idx = np.argmin(np.absolute(p-50000))
-    r_var_idx = np.where(p==r_var_pos)[0][0]
-
-    l_tree = dendropy.Tree.get(data=lTree, schema="newick")
-    c_tree = dendropy.Tree.get(data=cTree, schema="newick")
-    r_tree = dendropy.Tree.get(data=rTree, schema="newick")
-
-    l_fea = xtract_fea(l_tree, geno_mtx[l_var_idx, :], 1)
-    c_fea = xtract_fea(c_tree, geno_mtx[c_var_idx, :], 1)
-    r_fea = xtract_fea(r_tree, geno_mtx[r_var_idx, :], 1)
-
-    surr_fea = (l_fea+r_fea)/2
-    feature_mtx = np.vstack((c_fea, surr_fea)) # 4 by 100
-
-    return feature_mtx
-
-def infer_ARG_fea_5(pos_ls, geno_mtx, put_sel_var, Ne):
+def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
     '''Format input, run RELATE on variants of a simulated region and extract features of a region from inferred tree sequence
         Features include # of lineages at discretized time points & length of non-recomb. segment of surrounding gene trees,
         as well as the # of anc. & der. lineages at discretized time points, length of n.r.s. and der. allelic freq. at the focal site
+
+        For neutral regions, `var_pos` is the site chosen to have a matching allele frequency;
+        for sweep regions, `var_pos` is specified to be -1
+        `no_ft` - number of flanking gene trees to include on EACH side for feature extraction
+        `norm_iHS` - list of normalized iHS score at each variant, cols=["pos", "iHS"]
     '''
 
     # convert coordinate and resolve rounding duplicate
@@ -210,6 +154,12 @@ def infer_ARG_fea_5(pos_ls, geno_mtx, put_sel_var, Ne):
                 p[k] = p[k-1] + 1
                 p = np.sort(p)
 
+    if var_pos == -1:
+        var_ppos = 50000
+    else:
+        var_idx = np.where(pos_ls == var_pos)[0][0]
+        var_ppos = p[var_idx]
+
     ts_inferred = run_RELATE(p, geno_mtx, Ne)
 
     trees = []
@@ -219,23 +169,36 @@ def infer_ARG_fea_5(pos_ls, geno_mtx, put_sel_var, Ne):
         intervals = np.vstack((intervals, [left, right]))
         trees = np.append(trees, tree.newick(precision=1))
 
-    c_idx = np.where((intervals[:,0]<=50000) & (intervals[:,1]>50000))[0][0]
-    c_tree = dendropy.Tree.get(data=trees[c_idx], schema="newick")
-    c_fea = xtract_fea(c_tree, put_sel_var, 1)
+    lin_mtx = np.empty((0, K))
+    stat_mtx = np.empty((0, 4))
 
-    feature_mtx_5 = np.hstack((c_fea, np.reshape([intervals[c_idx, 1]-intervals[c_idx, 0], np.sum(put_sel_var)/np.shape(put_sel_var)[0]], (2,1))))
-    #print(feature_mtx_5.shape)
-    s_indices = [c_idx-2, c_idx-1, c_idx+1, c_idx+2]
+    c_idx = np.where((intervals[:,0]<=var_ppos) & (intervals[:,1]>var_ppos))[0][0]
+    window = range(c_idx-no_ft, c_idx+no_ft+1)
+    s_indices = np.take(np.arange(trees.shape[0]), window, mode='clip') # mode='clip' or 'wrap'
+
+    DAF_ls = np.mean(geno_mtx, axis=1)
 
     for st_idx in s_indices:
-        if st_idx < 0 or st_idx >= trees.shape[0]: # in case there are fewer than 5 gene trees in the region
-            feature_mtx_5 = np.vstack((feature_mtx_5, np.append(np.sum(c_fea, axis=0), 0)))
-            continue
         st = dendropy.Tree.get(data=trees[st_idx], schema="newick")
-        root_h = st.max_distance_from_root()
-        T = root_h - discretT
-        st_fea = np.array([st.num_lineages_at(t) for t in T]+[intervals[st_idx, 1]-intervals[st_idx, 0]])
-        feature_mtx_5 = np.vstack((feature_mtx_5, st_fea))
-        #print(feature_mtx_5.shape)
+        end = intervals[st_idx, 1]
+        begin = intervals[st_idx, 0]
 
-    return feature_mtx_5    # 6 x 101
+        length = end - begin
+        pos_iHS = np.round(norm_iHS[:, 0]*1e5)
+        iHS = np.mean(norm_iHS[pos_iHS>=begin & pos_iHS<end, 1])
+        H1 = calc_H1(geno_mtx[p>=begin & p<end, :], pos_ls[p>=begin & p<end])
+
+        if st_idx == c_idx:
+            DAF = np.sum(put_sel_var)/np.shape(put_sel_var)[0]
+            c_fea = xtract_fea(c_tree, put_sel_var, 1)
+            lin_mtx = np.vstack((lin_mtx, c_fea))
+            stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, DAF], [length, iHS, H1, DAF]))
+        else:
+            DAF = np.mean(DAF_ls[p>=begin & p<end])
+            root_h = st.max_distance_from_root()
+            T = root_h - discretT
+            st_fea = np.array([st.num_lineages_at(t) for t in T])
+            lin_mtx = np.vstack((lin_mtx, st_fea))
+            stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, DAF]))
+
+    return lin_mtx, stat_mtx    # dim(lin_mtx)=(2*no_ft+2, K); dim(stat_mtx)=(2*no_ft+2, 4)
