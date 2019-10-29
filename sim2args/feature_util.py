@@ -12,16 +12,17 @@ RELATE_PATH = '/sonas-hs/siepel/hpc_norepl/home/mo/sel_coef_empirical/relate_v1.
 #RELATE_PATH = '/Users/mo/Google Drive/Cloud Literally/Late_2019/inf_gt/relate_v1.0.16_MacOSX/bin/'
 mut_rate = "2.5e-8"
 
-#discretT = np.loadtxt('time.txt')
-#discretT = discretT.astype(int)
-#K = len(discretT)
-delta= 0.001 
-tmax = 20000
-K = 1000
-discretT = []
-for i in range(2,K+2):
-    discretT.append((np.exp(i/(K-1)*np.log(1+delta*tmax))-1)/delta)
-discretT = np.round(discretT)
+time_file_path = '/sonas-hs/siepel/hpc_norepl/home/mo/arg-selection/sim2args/time.txt'
+discretT = np.loadtxt(time_file_path)
+discretT = discretT.astype(int)
+K = len(discretT)
+# delta= 0.001 
+# tmax = 20000
+# K = 1000
+# discretT = []
+# for i in range(2,K+2):
+#     discretT.append((np.exp(i/(K-1)*np.log(1+delta*tmax))-1)/delta)
+# discretT = np.round(discretT)
 
 def run_RELATE(pp, gtm, Ne): # pp- physical position; gtm: genotype matrix
     # create RELATE input files
@@ -187,18 +188,18 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
         length = end - begin
         iHS = np.mean(norm_iHS[(pos_iHS>=begin) & (pos_iHS<end), 1])
         H1 = calc_H1(geno_mtx[(p>=begin) & (p<end), :], pos_ls[(p>=begin) & (p<end)])
+        avgDAF = np.mean(DAF_ls[(p>=begin) & (p<end)])
 
         if st_idx == c_idx and cnt == no_ft:
             DAF = np.sum(put_sel_var)/np.shape(put_sel_var)[0]
             c_fea = xtract_fea(st, put_sel_var, 1)
-            lin_mtx = np.vstack((lin_mtx, c_fea))
-            stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, DAF], [length, iHS, H1, DAF]))
+            lin_mtx = np.vstack((lin_mtx, c_fea)) # C = np.vstack((Canc, Cder))
+            stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, avgDAF], [length, iHS, H1, DAF]))
         else:
-            DAF = np.mean(DAF_ls[(p>=begin) & (p<end)])
             root_h = st.max_distance_from_root()
             T = root_h - discretT
             st_fea = np.array([st.num_lineages_at(t) for t in T])
             lin_mtx = np.vstack((lin_mtx, st_fea))
-            stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, DAF]))
+            stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, avgDAF]))
 
     return lin_mtx, stat_mtx    # dim(lin_mtx)=(2*no_ft+2, K); dim(stat_mtx)=(2*no_ft+2, 4)
