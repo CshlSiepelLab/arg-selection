@@ -12,18 +12,19 @@ module purge
 module load Anaconda3/5.3.0
 
 GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
-PKL=$1
-OUTPREF=$2
-THREADS=$3
-MODE=$4
+FILEPATH=$1 #path to pickle files, ending with '/''
+SWPPREF=$2
+NEUPREF=$3
+THREADS=$4
 
-# usage: $./partition.py <pkl_path> <out_pref> <no_threads> <mode>
-#     - makes directory <out_pref>
-#     - outputs <out_pref>_pgv_<thread>.pickle files in directory
+# usage: $./partition.py <pkl_path> <swp_pkl_pref> <neu_pkl_pref> <no_threads>
+#     - makes directories <swp_pkl_pref> <neu_pkl_pref>
+#     - outputs <out_pref>_pgv_<thread>.pkl files in respective directory
 #     - calculates and normalizes the iHS score
-#     - <mode> can be `s` (sweep) or `n` (neutral)
+#     - sweep and neutral files needed simultaneously for normalization purpose
 
-${GITPATH}/arg-selection/sim2args/partition.py $PKL $OUTPREF $THREADS $MODE
+${GITPATH}/arg-selection/sim2args/partition.py $FILEPATH $SWPPREF $NEUPREF $THREADS
+echo "_EXITSTAT_$?"
 
 # HANDLEFILE=handles.txt
 

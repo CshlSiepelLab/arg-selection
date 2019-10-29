@@ -9,7 +9,7 @@ import dendropy
 import tskit
 
 RELATE_PATH = '/sonas-hs/siepel/hpc_norepl/home/mo/sel_coef_empirical/relate_v1.0.16_x86_64_static/bin/'
-#RELATE_PATH = 'relate_v1.0.16_MacOSX/bin/'
+#RELATE_PATH = '/Users/mo/Google Drive/Cloud Literally/Late_2019/inf_gt/relate_v1.0.16_MacOSX/bin/'
 mut_rate = "2.5e-8"
 
 #discretT = np.loadtxt('time.txt')
@@ -126,11 +126,11 @@ def xtract_fea(tree, var, base):
 
 def calc_H1(gt_mtx, pos):
 
-	pos = np.around(pos * 100000) # convert position to coordinate in 100kb region
+    pos = np.around(pos * 100000) # convert position to coordinate in 100kb region
     hArr = allel.HaplotypeArray(gt_mtx)
     acArr = hArr.count_alleles() 
 
-    H1, H12, H123, H2H1 = allel.garud_h(hArr_allVar)
+    H1, H12, H123, H2H1 = allel.garud_h(hArr)
 
     return H1
 
@@ -140,7 +140,7 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
         as well as the # of anc. & der. lineages at discretized time points, length of n.r.s. and der. allelic freq. at the focal site
 
         For neutral regions, `var_pos` is the site chosen to have a matching allele frequency;
-        for sweep regions, `var_pos` is specified to be -1
+        for sweep regions, `var_pos` is specified to be 0.5
         `no_ft` - number of flanking gene trees to include on EACH side for feature extraction
         `norm_iHS` - list of normalized iHS score at each variant, cols=["pos", "iHS"]
     '''
@@ -154,7 +154,7 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
                 p[k] = p[k-1] + 1
                 p = np.sort(p)
 
-    if var_pos == -1:
+    if var_pos == 0.5:
         var_ppos = 50000
     else:
         var_idx = np.where(pos_ls == var_pos)[0][0]
@@ -177,24 +177,24 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
     s_indices = np.take(np.arange(trees.shape[0]), window, mode='clip') # mode='clip' or 'wrap'
 
     DAF_ls = np.mean(geno_mtx, axis=1)
+    pos_iHS = np.round(norm_iHS[:, 0]*1e5)
 
-    for st_idx in s_indices:
+    for cnt, st_idx in enumerate(s_indices):
         st = dendropy.Tree.get(data=trees[st_idx], schema="newick")
         end = intervals[st_idx, 1]
         begin = intervals[st_idx, 0]
 
         length = end - begin
-        pos_iHS = np.round(norm_iHS[:, 0]*1e5)
-        iHS = np.mean(norm_iHS[pos_iHS>=begin & pos_iHS<end, 1])
-        H1 = calc_H1(geno_mtx[p>=begin & p<end, :], pos_ls[p>=begin & p<end])
+        iHS = np.mean(norm_iHS[(pos_iHS>=begin) & (pos_iHS<end), 1])
+        H1 = calc_H1(geno_mtx[(p>=begin) & (p<end), :], pos_ls[(p>=begin) & (p<end)])
 
-        if st_idx == c_idx:
+        if st_idx == c_idx and cnt == no_ft:
             DAF = np.sum(put_sel_var)/np.shape(put_sel_var)[0]
-            c_fea = xtract_fea(c_tree, put_sel_var, 1)
+            c_fea = xtract_fea(st, put_sel_var, 1)
             lin_mtx = np.vstack((lin_mtx, c_fea))
             stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, DAF], [length, iHS, H1, DAF]))
         else:
-            DAF = np.mean(DAF_ls[p>=begin & p<end])
+            DAF = np.mean(DAF_ls[(p>=begin) & (p<end)])
             root_h = st.max_distance_from_root()
             T = root_h - discretT
             st_fea = np.array([st.num_lineages_at(t) for t in T])
