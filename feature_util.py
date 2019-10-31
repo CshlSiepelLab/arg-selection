@@ -125,9 +125,9 @@ def xtract_fea(tree, var, base):
 
     return C
 
-def calc_H1(gt_mtx, pos):
+def calc_H1(gt_mtx):
 
-    pos = np.around(pos * 100000) # convert position to coordinate in 100kb region
+    #pos = np.around(pos * 100000) # convert position to coordinate in 100kb region
     hArr = allel.HaplotypeArray(gt_mtx)
     acArr = hArr.count_alleles() 
 
@@ -170,15 +170,19 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
         intervals = np.vstack((intervals, [left, right]))
         trees = np.append(trees, tree.newick(precision=1))
 
+    intervals[-1, 1] = 1e5 # force last tree to cover the rest of the region
+
     lin_mtx = np.empty((0, K))
-    stat_mtx = np.empty((0, 4))
+    #stat_mtx = np.empty((0, 4))
+    stat_mtx = np.empty((0, 3))
+    # iHS is not included for now. iHS is not calculated for sites with minor allele freq. <.05, which creates NaNs in the feature matrix
 
     c_idx = np.where((intervals[:,0]<=var_ppos) & (intervals[:,1]>var_ppos))[0][0]
     window = range(c_idx-no_ft, c_idx+no_ft+1)
     s_indices = np.take(np.arange(trees.shape[0]), window, mode='clip') # mode='clip' or 'wrap'
 
     DAF_ls = np.mean(geno_mtx, axis=1)
-    pos_iHS = np.round(norm_iHS[:, 0]*1e5)
+    #pos_iHS = np.round(norm_iHS[:, 0]*1e5)
 
     for cnt, st_idx in enumerate(s_indices):
         st = dendropy.Tree.get(data=trees[st_idx], schema="newick")
@@ -186,20 +190,65 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
         begin = intervals[st_idx, 0]
 
         length = end - begin
-        iHS = np.mean(norm_iHS[(pos_iHS>=begin) & (pos_iHS<end), 1])
-        H1 = calc_H1(geno_mtx[(p>=begin) & (p<end), :], pos_ls[(p>=begin) & (p<end)])
+        #iHS = np.mean(norm_iHS[(pos_iHS>=begin) & (pos_iHS<end), 1])
+        H1 = calc_H1(geno_mtx[(p>=begin) & (p<end), :])
         avgDAF = np.mean(DAF_ls[(p>=begin) & (p<end)])
 
         if st_idx == c_idx and cnt == no_ft:
             DAF = np.sum(put_sel_var)/np.shape(put_sel_var)[0]
             c_fea = xtract_fea(st, put_sel_var, 1)
             lin_mtx = np.vstack((lin_mtx, c_fea)) # C = np.vstack((Canc, Cder))
-            stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, avgDAF], [length, iHS, H1, DAF]))
+            #stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, avgDAF], [length, iHS, H1, DAF]))
+            stat_mtx = np.vstack((stat_mtx, [length, H1, avgDAF], [length, H1, DAF]))
         else:
             root_h = st.max_distance_from_root()
             T = root_h - discretT
             st_fea = np.array([st.num_lineages_at(t) for t in T])
             lin_mtx = np.vstack((lin_mtx, st_fea))
-            stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, avgDAF]))
+            #stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, avgDAF]))
+            stat_mtx = np.vstack((stat_mtx, [length, H1, avgDAF]))
 
     return lin_mtx, stat_mtx    # dim(lin_mtx)=(2*no_ft+2, K); dim(stat_mtx)=(2*no_ft+2, 4)
+
+def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft):
+    '''
+    ppos_ls: list of physical positions of the variants
+    gtm: genotype matrix of the variants
+    intvls: intervals of the trees
+    dp_tr_ls: dendropy objects of the trees
+    flk_fea_ls: precomputed features of the trees (if they are the flanking trees)
+    no_ft: # of flanking trees on EACH side
+    '''
+
+    pos_vars = []
+    lin_vars = []
+    stat_vars = []
+
+    stat_cache = np.empty((0, 3))
+
+    for idx in range(len(dp_tr_ls)):
+        end = intervals[idx, 1]
+        begin = intervals[idx, 0]
+        length = end - begin
+        gtm_loc = gtm[(ppos_ls>=begin) & (ppos_ls<end), :]
+        H1 = calc_H1(gtm_loc)
+        avgDAF = np.mean(gtm_loc)
+        stat_cache = np.vstack((stat_cache, [length, H1, avgDAF]))
+
+    foc_sites = (ppos_ls>=intvls[no_ft, 0]) & (ppos_ls<intvls[no_ft, 1])
+
+    for var_i in np.argwhere(foc_sites):
+        gt = gtm[var_i, :]
+        
+        DAF = np.mean(gt)
+        c_fea = xtract_fea(dp_tr_ls[no_ft], gt, 1)
+
+        lin_mtx = np.vstack((flk_fea_ls[:no_ft, :], c_fea, flk_fea_ls[-no_ft:, :])) # C = np.vstack((Canc, Cder))
+        stat_mtx = np.vstack((stat_cache[:no_ft+1, :], stat_cache[no_ft:, :]))
+        stat_mtx[no_ft+1, 2] = DAF
+
+        pos_vars.append(ppos_ls[var_i])
+        lin_vars.append(lin_mtx)
+        stat_vars.append(stat_mtx)
+
+    return pos_vars, lin_vars, stat_vars

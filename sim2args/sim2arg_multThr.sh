@@ -6,7 +6,7 @@
 #$ -tc 20
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
-#$ -l m_mem_free=10G
+#$ -l m_mem_free=32G
 
 echo "_START_$(date)"
 
