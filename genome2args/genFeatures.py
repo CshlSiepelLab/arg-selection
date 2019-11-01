@@ -12,18 +12,20 @@ import numpy as np
 import feature_util as fea
 
 helpMsg = '''
-        usage: $./genFeatures.py <.trees PATH> <out prefix> <no_ft>
+        usage: $./genFeatures.py <.trees PATH> <out prefix> <no_ft> <min_DAF>
 '''
 
 def main(args):
-    if len(args) != 4:    #3 arguments
+    if len(args) != 5:    #4 arguments
         return helpMsg
 
     ts_file=args[1]
     out_pref=args[2]
-    no_ft=args[3]
+    no_ft=int(args[3])
+    min_DAF=float(args[4])
     
     ts = tskit.load(ts_file)
+    min_DAC = round(min_DAF*len(ts.samples()))
     
     # feature matrices for variant sites
     pos_ls = []
@@ -35,7 +37,7 @@ def main(args):
 
     # cache
     ppos_ls = np.array([])
-    gt_mtx = np.empty((0, len(ts.samples()))) # of row matches len(ppos_ls)
+    gt_mtx = np.empty((0, len(ts.samples())), int) # of row matches len(ppos_ls)
 
     intervals = np.empty((0, 2), int) # of row = 2*no_ft + 1
     dp_tr_ls = []  # list of dendropy objects len(dp_tr_ls) = 2*no_ft + 1
@@ -46,6 +48,7 @@ def main(args):
     for var in ts.variants():
         pos = var.site.position
         gt = var.genotypes
+        if np.sum(gt) == 0: continue # ignore invariant sites
 
         if pos < EOInvl:
             ppos_ls = np.append(ppos_ls, pos)
@@ -54,7 +57,7 @@ def main(args):
 
         if len(dp_tr_ls) == 2*no_ft+1:
             # resolve the middle segment of the previous window
-            pos_vs, lin_vs, stat_vs = fea.vars_ARG_fea(ppos_ls, gt_mtx, intervals, dp_tr_ls, flk_fea_ls, no_ft)
+            pos_vs, lin_vs, stat_vs = fea.vars_ARG_fea(ppos_ls, gt_mtx, intervals, dp_tr_ls, flk_fea_ls, no_ft, min_DAC)
             pos_ls += pos_vs
             lin_ls += lin_vs
             stat_ls += stat_vs
@@ -78,13 +81,13 @@ def main(args):
 
         intervals = np.vstack((intervals, [left, right]))
 
-        st = dendropy.Tree.get(data=tree, schema="newick")
+        st = dendropy.Tree.get(data=tree.newick(precision=1), schema="newick")
         root_h = st.max_distance_from_root()
         T = root_h - fea.discretT
         st_fea = np.array([st.num_lineages_at(t) for t in T])
 
         dp_tr_ls.append(st)
-        flk_fea_ls = np.vstack(flk_fea_ls, st_fea)
+        flk_fea_ls = np.vstack((flk_fea_ls, st_fea))
 
         EOInvl = right
 

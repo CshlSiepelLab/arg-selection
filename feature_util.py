@@ -89,6 +89,10 @@ def run_RELATE(pp, gtm, Ne): # pp- physical position; gtm: genotype matrix
     return ts_inferred
 
 def xtract_fea(tree, var, base):
+    '''
+    discoal tree tips range from 0 to 197 (base = 0)
+    RELATE tree tips range from 1 to 198 (base = 1)
+    '''
 
     distance_from_root = np.max(tree.calc_node_root_distances()) - discretT
     ones = np.where(var==1)[0] + base
@@ -210,7 +214,7 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
 
     return lin_mtx, stat_mtx    # dim(lin_mtx)=(2*no_ft+2, K); dim(stat_mtx)=(2*no_ft+2, 4)
 
-def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft):
+def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC):
     '''
     ppos_ls: list of physical positions of the variants
     gtm: genotype matrix of the variants
@@ -218,6 +222,7 @@ def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft):
     dp_tr_ls: dendropy objects of the trees
     flk_fea_ls: precomputed features of the trees (if they are the flanking trees)
     no_ft: # of flanking trees on EACH side
+    min_DAC: minimum derived allele count for feature calculation
     '''
 
     pos_vars = []
@@ -227,8 +232,8 @@ def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft):
     stat_cache = np.empty((0, 3))
 
     for idx in range(len(dp_tr_ls)):
-        end = intervals[idx, 1]
-        begin = intervals[idx, 0]
+        end = intvls[idx, 1]
+        begin = intvls[idx, 0]
         length = end - begin
         gtm_loc = gtm[(ppos_ls>=begin) & (ppos_ls<end), :]
         H1 = calc_H1(gtm_loc)
@@ -237,8 +242,9 @@ def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft):
 
     foc_sites = (ppos_ls>=intvls[no_ft, 0]) & (ppos_ls<intvls[no_ft, 1])
 
-    for var_i in np.argwhere(foc_sites):
+    for var_i in np.argwhere(foc_sites).flatten(): # argwhere returns a column vector, needs to be flattened!
         gt = gtm[var_i, :]
+        if np.sum(gt) < minDAC: continue
         
         DAF = np.mean(gt)
         c_fea = xtract_fea(dp_tr_ls[no_ft], gt, 1)
