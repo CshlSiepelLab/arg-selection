@@ -228,6 +228,7 @@ def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC):
     pos_vars = []
     lin_vars = []
     stat_vars = []
+    tree_vars = []
 
     stat_cache = np.empty((0, 3))
 
@@ -241,6 +242,7 @@ def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC):
         stat_cache = np.vstack((stat_cache, [length, H1, avgDAF]))
 
     foc_sites = (ppos_ls>=intvls[no_ft, 0]) & (ppos_ls<intvls[no_ft, 1])
+    focT_nwk = dp_tr_ls[no_ft].as_string(schema="newick")
 
     for var_i in np.argwhere(foc_sites).flatten(): # argwhere returns a column vector, needs to be flattened!
         gt = gtm[var_i, :]
@@ -256,5 +258,6 @@ def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC):
         pos_vars.append(ppos_ls[var_i])
         lin_vars.append(lin_mtx)
         stat_vars.append(stat_mtx)
+        tree_vars.append(focT_nwk)
 
-    return pos_vars, lin_vars, stat_vars
+    return pos_vars, lin_vars, stat_vars, tree_vars

@@ -31,6 +31,7 @@ def main(args):
     pos_ls = []
     lin_ls = []
     stat_ls = []
+    tree_ls = [] #nwk strings of the trees at each site
 
     # features of trees
     #foc_fea_ls = [] # this is differnet for each variant
@@ -57,10 +58,11 @@ def main(args):
 
         if len(dp_tr_ls) == 2*no_ft+1:
             # resolve the middle segment of the previous window
-            pos_vs, lin_vs, stat_vs = fea.vars_ARG_fea(ppos_ls, gt_mtx, intervals, dp_tr_ls, flk_fea_ls, no_ft, min_DAC)
+            pos_vs, lin_vs, stat_vs, tree_vs = fea.vars_ARG_fea(ppos_ls, gt_mtx, intervals, dp_tr_ls, flk_fea_ls, no_ft, min_DAC)
             pos_ls += pos_vs
             lin_ls += lin_vs
             stat_ls += stat_vs
+            tree_ls += tree_vs
 
             # Remove leftmost tree from cache
             keep = (ppos_ls >= intervals[1, 0])
@@ -92,7 +94,7 @@ def main(args):
         EOInvl = right
 
     with open(out_pref+'.pickle', 'wb') as f:
-        pickle.dump((pos_ls, lin_ls, stat_ls), f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump((pos_ls, lin_ls, stat_ls, tree_ls), f, pickle.HIGHEST_PROTOCOL)
     
     return 0
 
