@@ -1,11 +1,9 @@
 #!/bin/bash
-#$ -N RELATE_array
+#$ -N RELATE_gene
 #$ -S /bin/bash
 #$ -cwd
-#$ -t 1-13
-#$ -o $JOB_ID_$TASK_ID.o
-#$ -e $JOB_ID_$TASK_ID.e
-#$ -l m_mem_free=32G
+#$ -j y
+#$ -l m_mem_free=64G
 
 echo "_START_$(date)"
 
@@ -19,7 +17,8 @@ FROML=($(awk '{print $3}' $GENELIST))
 TOL=($(awk '{print $4}' $GENELIST))
 
 #for ((SGE_TASK_ID=1;SGE_TASK_ID<=13;SGE_TASK_ID++)); do
-IDX=$((SGE_TASK_ID-1))
+GENE_ID=$1
+IDX=$((GENE_ID-1))
 GENE=${GENEL[$IDX]}
 CHR=${CHRL[$IDX]}
 FROM=${FROML[$IDX]}

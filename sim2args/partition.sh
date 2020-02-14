@@ -3,8 +3,9 @@
 #$ -S /bin/bash
 #$ -cwd
 #$ -j y
-#$ -l m_mem_free=32G
+#$ -l m_mem_free=100G
 
+# -pe threads 32
 
 echo "_START_$(date)"
 
@@ -15,15 +16,18 @@ GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
 FILEPATH=$1 #path to pickle files, ending with '/''
 SWPPREF=$2
 NEUPREF=$3
-THREADS=$4
+PARTITIONI=$4
+PARTITIONO=$5
 
-# usage: $./partition.py <pkl_path> <swp_pkl_pref> <neu_pkl_pref> <no_threads>
+# usage: $./partition.py <pkl_path> <swp_pkl_pref> <neu_pkl_pref> <part_i> <part_o>
 #     - makes directories <swp_pkl_pref> <neu_pkl_pref>
+#     - <part_i>: # of input partitions
+#     - <part_o>: # of output partitions
 #     - outputs <out_pref>_pgv_<thread>.pkl files in respective directory
 #     - calculates and normalizes the iHS score
 #     - sweep and neutral files needed simultaneously for normalization purpose
 
-${GITPATH}/arg-selection/sim2args/partition.py $FILEPATH $SWPPREF $NEUPREF $THREADS
+${GITPATH}/arg-selection/sim2args/partition.py $FILEPATH $SWPPREF $NEUPREF $PARTITIONI $PARTITIONO
 echo "_EXITSTAT_$?"
 
 # HANDLEFILE=handles.txt

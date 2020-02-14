@@ -8,11 +8,13 @@ import allel
 import dendropy
 import tskit
 
-RELATE_PATH = '/sonas-hs/siepel/hpc_norepl/home/mo/sel_coef_empirical/relate_v1.0.16_x86_64_static/bin/'
-#RELATE_PATH = '/Users/mo/Google Drive/Cloud Literally/Late_2019/inf_gt/relate_v1.0.16_MacOSX/bin/'
+RELATE_PATH = '/sonas-hs/siepel/hpc_norepl/home/mo/relate_v1.0.17_x86_64_static/'
+#RELATE_PATH = '/Users/mo/relate_v1.0.16_MacOSX/'
 mut_rate = "2.5e-8"
 
 time_file_path = '/sonas-hs/siepel/hpc_norepl/home/mo/arg-selection/sim2args/time.txt'
+#time_file_path = 'time.txt'
+
 discretT = np.loadtxt(time_file_path)
 discretT = discretT.astype(int)
 K = len(discretT)
@@ -24,7 +26,7 @@ K = len(discretT)
 #     discretT.append((np.exp(i/(K-1)*np.log(1+delta*tmax))-1)/delta)
 # discretT = np.round(discretT)
 
-def run_RELATE(pp, gtm, Ne): # pp- physical position; gtm: genotype matrix
+def run_RELATE(pp, gtm, Ne, var_ppos): # pp- physical position; gtm: genotype matrix; var_ppos: physical position of the variant
     # create RELATE input files
 
     with open("temp.haps", 'w') as hapF:
@@ -39,6 +41,11 @@ def run_RELATE(pp, gtm, Ne): # pp- physical position; gtm: genotype matrix
         for i in range(no_dips):
             print('UNR'+str(i+1), 'UNR'+str(i+1), 0, file=sampF)
 
+    with open("temp.poplabels", 'w') as popF:
+        print('sample', 'population', 'group', 'sex', file=popF)
+        for i in range(no_dips):
+            print('UNR'+str(i+1), 'CEU', 'EUR', 1, file=popF)
+
     rho_cMpMb = 1.25
     with open("temp.map", 'w') as mapF:
         ppos = 0
@@ -52,41 +59,110 @@ def run_RELATE(pp, gtm, Ne): # pp- physical position; gtm: genotype matrix
             ppos = next_ppos
             print(int(ppos), rho_cMpMb, rdist, file=mapF)
 
-    # run RELATE
-
-    cmd = [RELATE_PATH+"Relate", "--mode", "All",
+    relate_cmd = [RELATE_PATH+"bin/Relate", "--mode", "All",
             "-m", mut_rate,
             "-N", Ne,
             "--haps", "temp.haps",
             "--sample", "temp.sample",
             "--map", "temp.map",
-            "-o", "temp"]
-    relate_proc = subprocess.run(cmd)
-    relate_proc.check_returncode()
-    #if relate_proc.returncode != 0:
-    #    raise RuntimeError("Relate failed with Exit Stat", relate_proc.returncode)
+            "-o", "temp",
+            "--memory", "8"]
 
-    # convert to tree-sequence
-
-    cmd = [RELATE_PATH+"RelateFileFormats", "--mode", "ConvertToTreeSequence",
+    popsize_cmd = [RELATE_PATH+"scripts/EstimatePopulationSize/EstimatePopulationSize.sh",
             "-i", "temp",
-            "-o", "temp"]
-    conv_proc = subprocess.run(cmd)
-    conv_proc.check_returncode()
+            "-m", mut_rate,
+            "--poplabels", "temp.poplabels",
+            "--threshold", "10",
+            "-o", "temp_popsize"]
+
+    wg_cmd = [RELATE_PATH+"scripts/EstimatePopulationSize/EstimatePopulationSize.sh",
+            "-i", "temp",
+            "-m", mut_rate,
+            "--poplabels", "temp.poplabels",
+            "--threshold", "0",
+            "--coal", "temp_popsize.coal",
+            "--num_iter", "1",
+            "-o", "temp_wg"]
+
+    conv_cmd = [RELATE_PATH+"bin/RelateFileFormats", "--mode", "ConvertToTreeSequence",
+            "-i", "temp_wg",
+            "-o", "temp_wg"]
+
+    loop_cnt = 0
+    # run RELATE
+    while True:
+        loop_cnt += 1
+        print("Milestone: Running RELATE pipeline, try_", loop_cnt, sep='')
+        relate_proc = subprocess.run(relate_cmd)
+        if relate_proc.returncode != 0: continue
+        #relate_proc.check_returncode()
+        # while relate_proc.returncode != 0:
+        # #    raise RuntimeError("Relate failed with Exit Stat", relate_proc.returncode)
+        #     print("relate_proc_failed, restart")
+        #     relate_proc = subprocess.run(cmd)
+
+        # re-estimate branch lengths
+        popsize_proc = subprocess.run(popsize_cmd)
+        if popsize_proc.returncode != 0: continue
+        # output: _popsize.pdf, _popsize.anc.gz, _popsize.mut.gz, _popsize.dist, _popsize.coal. _popsize.bin, _popsize_avg.rate
+
+        # re-estimate branch length for ENTIRE genealogy
+        wg_proc = subprocess.run(wg_cmd)
+        if wg_proc.returncode != 0: continue
+
+        # convert to tree-sequence
+        conv_proc = subprocess.run(conv_cmd)
+        if conv_proc.returncode != 0: continue
+        # if the conversion throws <time[parent] must be greater than time[child]> error, rerun the last resampling step
+        print("Milestone: RELATE pipeline success", flush=True)
+        break
+
+    # run RELATE selection inference
+    if var_ppos in pp:
+        pval = RELATE_sel_inf(var_ppos)
+    else:
+        pval = 0.1 # selected variant not in the list
 
     # load tree sequence
-
-    ts_inferred = tskit.load("temp.trees")
+    ts_inferred = tskit.load("temp_wg.trees")
 
     # clean-up
-    os.remove("temp.haps")
-    os.remove("temp.sample")
-    os.remove("temp.map")
-    os.remove("temp.anc")
-    os.remove("temp.mut")
-    os.remove("temp.trees")
+    subprocess.call("rm temp*", shell=True)
 
-    return ts_inferred
+    return ts_inferred, pval
+
+def RELATE_sel_inf(locOI):
+
+    # cmd = [RELATE_PATH+"bin/RelateCoalescentRate",
+    #         "--mode", "EstimatePopulationSize",
+    #         "-i", "temp",
+    #         "-o", "temp"]
+
+    # pwcoal_proc = subprocess.run(cmd)
+    # pwcoal_proc.check_returncode()
+    # # output: temp.coal, temp.bin
+
+    cmd = [RELATE_PATH+"scripts/DetectSelection/DetectSelection.sh",
+            "-i", "temp_wg",
+            "-o", "temp_sel",
+            "-m", mut_rate,
+            "--first_bp", str(locOI),
+            "--last_bp", str(locOI)]
+            #"--coal", "temp.coal"]
+
+    sele_proc = subprocess.run(cmd)
+    #sele_proc.check_returncode()
+    while sele_proc.returncode != 0:
+        print("sele_proc_failed, restart")
+        sele_proc = subprocess.run(cmd)
+    # output: temp_sel.lin, temp_sel.freq, temp_sel.sele, temp_sel.anc, temp_sel.mut
+
+    sel_pval = np.genfromtxt("temp_sel.sele", skip_header=1)
+
+    if sel_pval.size == 0:
+        return 0 # RELATE cannot test for selection at site where the mutation cannot be mapped to a unique branch
+    else:
+        return sel_pval[-1]
 
 def xtract_fea(tree, var, base):
     '''
@@ -165,7 +241,7 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
         var_idx = np.where(pos_ls == var_pos)[0][0]
         var_ppos = p[var_idx]
 
-    ts_inferred = run_RELATE(p, geno_mtx, Ne)
+    ts_inferred, RELATE_pval = run_RELATE(p, geno_mtx, Ne, var_ppos)
 
     trees = []
     intervals = np.empty((0,2), int)
@@ -212,7 +288,7 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
             #stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, avgDAF]))
             stat_mtx = np.vstack((stat_mtx, [length, H1, avgDAF]))
 
-    return lin_mtx, stat_mtx    # dim(lin_mtx)=(2*no_ft+2, K); dim(stat_mtx)=(2*no_ft+2, 4)
+    return lin_mtx, stat_mtx, RELATE_pval    # dim(lin_mtx)=(2*no_ft+2, K); dim(stat_mtx)=(2*no_ft+2, 4)
 
 def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC):
     '''

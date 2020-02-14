@@ -46,6 +46,7 @@ def main(args):
 
     lin_ls = []
     stat_ls = []
+    relate_ls = [] # log-10 p-value for selection by RELATE
 
     wd = handle+'/'+handle+'_'+tag+'_temp_'+thread
     os.mkdir(wd, 0o755)
@@ -54,12 +55,13 @@ def main(args):
         iHS_idx = iHS_df[:, 0]-iHS_df[0, 0]
         for r_idx in range(len(list_pos)):
             norm_iHS = iHS_df[iHS_idx==r_idx, 1:3]
-            lin, stat = fea.infer_ARG_fea(list_pos[r_idx], list_geno[r_idx], list_variant[r_idx], list_var_pos[r_idx], Ne, no_st, norm_iHS)
+            lin, stat, relate_p = fea.infer_ARG_fea(list_pos[r_idx], list_geno[r_idx], list_variant[r_idx], list_var_pos[r_idx], Ne, no_st, norm_iHS)
             lin_ls.append(lin)
             stat_ls.append(stat)
+            relate_ls.append(relate_p)
 
     with open(handle+'/'+handle+'_'+tag+'_inf_fea_'+thread+'.pickle', 'wb') as f:
-        pickle.dump((lin_ls, stat_ls), f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump((lin_ls, stat_ls, relate_ls), f, pickle.HIGHEST_PROTOCOL)
 
     os.rmdir(wd)
 

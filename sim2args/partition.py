@@ -7,8 +7,10 @@ import numpy as np
 import allel
 
 helpMsg = '''
-        usage: $./partition.py <pkl_path> <swp_pkl_pref> <neu_pkl_pref> <no_threads>
+        usage: $./partition.py <pkl_path> <swp_pkl_pref> <neu_pkl_pref> <part_i> <part_o>
             - makes directories <swp_pkl_pref> <neu_pkl_pref>
+            - <part_i>: # of input partitions
+            - <part_o>: # of output partitions
             - outputs <out_pref>_pgv_<thread>.pkl files in respective directory
             - calculates and normalizes the iHS score
             - sweep and neutral files needed simultaneously for normalization purpose
@@ -28,20 +30,41 @@ def all_iHS(gt_mtx, pos):
     return varStats
 
 def main(args):
-    if len(args) != 5:    #4 arguments
+    if len(args) != 6:    #5 arguments
         return helpMsg
 
     path = args[1]
     swp_pref = args[2]
     neu_pref = args[3]
-    no_threads = int(args[4])
+    partI = int(args[4])
+    partO = int(args[5])
     #mode = args[4]
 
-    with open(path+swp_pref+'.pkl', 'rb') as f:
-        slist_sel_coef, slist_freq, slist_variant, slist_tree, slist_geno, slist_pos, slist_variant_pos = pickle.load(f)
+    slist_pos = []
+    slist_geno = []
+    slist_variant = np.empty((0, 198)) # of haplotypes = 198
+    slist_variant_pos = []
+    nlist_pos = []
+    nlist_geno = []
+    nlist_variant = np.empty((0, 198)) # of haplotypes = 198
+    nlist_variant_pos = []
 
-    with open(path+neu_pref+'.pkl', 'rb') as f:
-        nlist_sel_coef, nlist_freq, nlist_variant, nlist_tree, nlist_geno, nlist_pos, nlist_variant_pos = pickle.load(f)
+    for p_in in range(partI):
+        # pickle fmt: list_sel_coef(0, ls), list_freq(1, ls), list_variant(2, nparr), 
+        # trees_of_interest(3, ls), list_geno(4, ls), list_pos(5, ls), list_variant_pos(6, ls), length_ARG(7, ls)
+        with open(path+swp_pref+'_'+str(p_in)+'.pkl', 'rb') as f:
+            sllist = pickle.load(f)
+            slist_pos += sllist[5]
+            slist_geno += sllist[4]
+            slist_variant = np.vstack((slist_variant, sllist[2]))
+            slist_variant_pos += sllist[6]
+
+        with open(path+neu_pref+'_'+str(p_in)+'.pkl', 'rb') as f:
+            nllist = pickle.load(f)
+            nlist_pos += nllist[5]
+            nlist_geno += nllist[4]
+            nlist_variant = np.vstack((nlist_variant, nllist[2]))
+            nlist_variant_pos += nllist[6]
 
     ## iHS calculation ##
     no_ssims = len(slist_pos) # number of simulations
@@ -70,12 +93,12 @@ def main(args):
     #iHS_pd_df = pd.DataFrame(iHS_df, columns=df_cols)
 
     # Partition
-    tasks = no_ssims//no_threads
+    tasks = no_ssims//partO
     os.mkdir(swp_pref, 0o755)
 
-    for thread in range(1, no_threads+1):
+    for thread in range(1, partO+1):
         a_idx = (thread-1)*tasks
-        if thread == no_threads:
+        if thread == partO:
             b_idx = no_ssims
         else:
             b_idx = thread*tasks
@@ -84,12 +107,12 @@ def main(args):
         with open(swp_pref+'/'+swp_pref+'_pgv_'+str(thread)+'.pkl', 'wb') as f:
             pickle.dump((slist_pos[a_idx:b_idx], slist_geno[a_idx:b_idx], slist_variant[a_idx:b_idx], slist_variant_pos[a_idx:b_idx], iHS_sub), f, pickle.HIGHEST_PROTOCOL)
 
-    tasks = no_nsims//no_threads
+    tasks = no_nsims//partO
     os.mkdir(neu_pref, 0o755)
 
-    for thread in range(1, no_threads+1):
+    for thread in range(1, partO+1):
         a_idx = (thread-1)*tasks
-        if thread == no_threads:
+        if thread == partO:
             b_idx = no_nsims
         else:
             b_idx = thread*tasks

@@ -5,6 +5,8 @@
 #$ -j y
 #$ -l m_mem_free=32G
 
+# -pe threads 32
+
 echo "_START_$(date)"
 
 module purge
