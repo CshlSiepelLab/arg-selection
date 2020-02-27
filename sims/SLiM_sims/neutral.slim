@@ -1,0 +1,54 @@
+// Neutral simulation with tree sequence recording
+
+initialize() {
+
+	// need to define the following Eidos constants
+	// defineConstant("paramF", 'maize_scale_40.param');
+	// defineConstant("outPref", 'test');
+	// comment out above for command-line deployment
+	
+	params = readFile(paramF);
+
+	mu = asFloat(params[0]);
+	r = asFloat(params[1]);
+	
+	gen = c();
+	Ne = c();
+
+	for (l in 2:(size(params)-1)){
+		gen_Ne = asInteger(strsplit(params[l]));
+		gen = c(gen, gen_Ne[0]);
+		Ne = c(Ne, gen_Ne[1]);
+	}
+
+	defineConstant("GOI", gen[1:(size(gen)-2)]);
+	defineConstant("Ne_GOI", Ne[1:(size(Ne)-2)]);
+
+	defineConstant("N_0", Ne[0]); // N_0
+	defineConstant("last", gen[size(gen)-1]);  // end gen
+
+	initializeTreeSeq();
+	initializeMutationRate(0);
+	initializeRecombinationRate(r);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1e5-1);
+	
+}
+1 {
+	sim.addSubpop("p1", N_0);
+	p1.setSelfingRate(0.03);
+	sim.rescheduleScriptBlock(s1, generations=GOI);
+	sim.rescheduleScriptBlock(s2, last, last);
+}
+
+s1 2 {
+if (sum(GOI==sim.generation)){
+	p1.setSubpopulationSize(Ne_GOI[GOI==sim.generation]);
+}
+}
+
+s2 10 late() {
+	sim.treeSeqOutput(paste(c(outPref, ".trees"), sep=""));
+	//sim.simulationFinished();
+}
