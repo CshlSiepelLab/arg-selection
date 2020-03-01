@@ -11,6 +11,9 @@ echo "_START_$(date)"
 
 module purge
 module load GCC/7.3.0-2.30
+module load OpenMPI/3.1.1
+module load Python/3.6.6
+module load GSL/2.5
 
 SLIMDIR="/sonas-hs/siepel/hpc_norepl/home/mo/maiz/build"
 GITPATH="/sonas-hs/siepel/hpc_norepl/home/mo/arg-selection"
@@ -36,13 +39,13 @@ RUNS=$5 # no of new runs PER THREAD
 #   <script file>    : the input script file (stdin may be used instead)
 
 for sim in $(seq 1 $RUNS); do
-	RUNID=$((LASTIDX+(SGE_TASK_ID-1)*RUNS+sim))
-	${SLIMDIR}/slim -s $RANDOM -t -m -d "paramF='${PARAMF}'" -d "outPref='${OUTPREF}_temp'" $SCRIPT
-	echo "${RUNID}_SLiM_EXITSTAT_$?"
-	${GITPATH}/sims/SLiM_sims/recapitation.py ${OUTPREF}_temp.trees ${PARAMF} $NOCHR ${OUTPREF}_${RUNID}
-	echo "${RUNID}_recap_EXITSTAT_$?"
+	RUN_ID=$((LASTIDX+(SGE_TASK_ID-1)*RUNS+sim))
+	${SLIMDIR}/slim -s $RANDOM -t -m -d "paramF='${PARAMF}'" -d "outPref='${OUTPREF}_${RUN_ID}_temp'" $SCRIPT
+	echo "${RUN_ID}_SLiM_EXITSTAT_$?"
+	${GITPATH}/sims/SLiM_sims/recapitation.py ${OUTPREF}_${RUN_ID}_temp.trees ${PARAMF} $NOCHR ${OUTPREF}_${RUN_ID}_samp
+	echo "${RUN_ID}_recap_EXITSTAT_$?"
 	# delete the tree file
-	rm ${OUTPREF}_temp.trees
+	rm ${OUTPREF}_${RUN_ID}_temp.trees
 done
 
 echo "_END_$(date)"

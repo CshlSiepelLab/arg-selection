@@ -3,6 +3,7 @@
 import sys, os
 import msprime
 import pyslim
+import numpy as np
 
 helpMsg = '''
         usage: $./recapitation.py <slim_tree.trees> <slim_dem.params> <N_chrs> <out_pref>

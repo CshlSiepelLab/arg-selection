@@ -9,12 +9,22 @@ echo "_START_$(date)"
 
 module purge
 module load GCC/7.3.0-2.30
+module load OpenMPI/3.1.1
+module load Python/3.6.6
+module load GSL/2.5
 
-SCRIPT=$2
-SEED=$1
+SLIMDIR="/sonas-hs/siepel/hpc_norepl/home/mo/maiz/build"
+GITPATH="/sonas-hs/siepel/hpc_norepl/home/mo/arg-selection"
+SCRIPT="${GITPATH}/sims/SLiM_sims/neutral.slim"
 
-echo "RANDOM SEED: $SEED"
-echo "RUNNING SCRIPT: $SCRIPT"
+PARAMF=$1
+NOCHR=$2
+OUTPREF=$3
+LASTIDX=$4
+RUNS=$5 # no of new runs PER THREAD
+
+#echo "RANDOM SEED: $SEED"
+#echo "RUNNING SCRIPT: $SCRIPT"
 #usage: slim -v[ersion] | -u[sage] | -testEidos | -testSLiM |
 #   [-l[ong]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]
 #   [-d[efine] <def>] [<script file>]
@@ -28,9 +38,16 @@ echo "RUNNING SCRIPT: $SCRIPT"
 #   -d[efine] <def>  : define an Eidos constant, such as "mu=1e-7"
 #   <script file>    : the input script file (stdin may be used instead)
 
-./slim -s $SEED $SCRIPT
+sim=$RUNS
+SGE_TASK_ID=1
 
-echo "_EXITSTAT_$?"
+RUN_ID=$((LASTIDX+(SGE_TASK_ID-1)*RUNS+sim))
+${SLIMDIR}/slim -s $RANDOM -t -m -d "paramF='${PARAMF}'" -d "outPref='${OUTPREF}_${RUN_ID}_temp'" $SCRIPT
+echo "${RUNID}_SLiM_EXITSTAT_$?"
+${GITPATH}/sims/SLiM_sims/recapitation.py ${OUTPREF}_${RUN_ID}_temp.trees ${PARAMF} $NOCHR ${OUTPREF}_${RUN_ID}_samp
+echo "${RUNID}_recap_EXITSTAT_$?"
+# delete the tree file
+rm ${OUTPREF}_${RUN_ID}_temp.trees
+
 echo "_END_$(date)"
-
 exit

@@ -2,30 +2,30 @@
 #$ -N SLiM_array
 #$ -S /bin/bash
 #$ -cwd
-#$ -t 1-20
+#$ -t 1-100
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
-#$ -l m_mem_free=32G
+#$ -l m_mem_free=4G
 
 echo "_START_$(date)"
 
 module purge
 module load GCC/7.3.0-2.30
+module load OpenMPI/3.1.1
+module load Python/3.6.6
+module load GSL/2.5
 
-#mapfile -t SAMPIDS < $1
-#INDV=${SAMPIDS[$((SGE_TASK_ID-1))]}
-INDV=$1
-SUFFIX=$2
-MUTGEN=$3
-SCMIN=$4
-SCMAX=$5
-MINAF=$6
-SCRIPT=$7
-RUNS=$8
-LASTIDX=$9
+SLIMDIR="/sonas-hs/siepel/hpc_norepl/home/mo/maiz/build"
+GITPATH="/sonas-hs/siepel/hpc_norepl/home/mo/arg-selection"
+SCRIPT="${GITPATH}/sims/SLiM_sims/sweep_survey.slim"
 
-echo "PARAMETER SET: $INDV"
-echo "SLIM SCRIPT: $SCRIPT"
+PARAMF=$1
+RUNS=$2 # no of new runs PER THREAD
+MUTGENEL=$3 # ealiest gen to introduce mutation
+MUTGENLT=$4 # latest gen to introduce mutation
+SCMIN=$5 # min SCALED sel. coef
+SCMAX=$6 # max SCALED sel. coef
+
 #usage: slim -v[ersion] | -u[sage] | -testEidos | -testSLiM |
 #   [-l[ong]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]
 #   [-d[efine] <def>] [<script file>]
@@ -40,11 +40,9 @@ echo "SLIM SCRIPT: $SCRIPT"
 #   <script file>    : the input script file (stdin may be used instead)
 
 for sim in $(seq 1 $RUNS); do
-	./slim -s $RANDOM -t -d "paramF='slim_params/${INDV}.psmc_scaled.param'" -d "outPref='slim_output/${INDV}_${SUFFIX}/hdswp_${INDV}.psmc_$((LASTIDX+(SGE_TASK_ID-1)*RUNS+sim))'" -d "mutgen=$MUTGEN" -d "sc_min=$SCMIN" -d "sc_max=$SCMAX" -d "min_AF=$MINAF" $SCRIPT
-
+	${SLIMDIR}/slim -s $RANDOM -t -m -d "paramF='${PARAMF}'" -d "mutgen_early=$MUTGENEL" -d "mutgen_late=$MUTGENLT" -d "sc_min=$SCMIN" -d "sc_max=$SCMAX" $SCRIPT
+	echo "_EXITSTAT_$?"
 done
 
-echo "_EXITSTAT_$?"
 echo "_END_$(date)"
-
 exit
