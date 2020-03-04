@@ -4,15 +4,13 @@
 // `paramF`, `mutgen_early`, `mutgen_late`, `sc_min`, `sc_max`
 
 initialize() {
-	/*
+	if (exists("slimgui")){
 	paramF = 'maize_scale_40.param';
-	//defineConstant("outPref", "test");
 	mutgen_early = 2200;
 	mutgen_late = 2480;
 	sc_min = 0.1;
-	sc_max = 1; */
-	// comment out the above for command line tools
-	
+	sc_max = 1;
+	}
 	
 	params = readFile(paramF);
 	
@@ -54,7 +52,7 @@ initialize() {
 	sim.addSubpop("p1", N_0);
 	p1.setSelfingRate(0.03); // account for inbreeding in maize
 	sim.rescheduleScriptBlock(s1, generations=GOI);
-	sim.rescheduleScriptBlock(s2, mutgen-100, mutgen-100); // make sure to introduce at least 100 gen after sim start
+	sim.rescheduleScriptBlock(s2, mutgen-100, mutgen-100);
 	sim.rescheduleScriptBlock(s3, mutgen, mutgen);
 	sim.rescheduleScriptBlock(s4, last, last);
 }

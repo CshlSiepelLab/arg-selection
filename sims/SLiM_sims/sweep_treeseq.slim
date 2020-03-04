@@ -1,44 +1,43 @@
 // Sweep simulation with tree sequence recording
 // need to define the following Eidos constants:
-// `paramF`, `outPref`, `mutgen_early`, `mutgen_late`, `sc_min`, `sc_max`, `min_AF`
+// `paramF`, `outPref`, `sc_min`, `sc_max`, `min_AF`, `max_AF`
 
 initialize() {
-	/*
-	setSeed(31272);
-	
-	paramF = 'toy.txt';
+	if (exists("slimgui")){
+	//	setSeed(31272);
+	paramF = 'maize_scale_40.param';
 	defineConstant("outPref", "test");
-	defineConstant("mutgen", 4700); 
-	sc_min = 0.01;
-	sc_max = 0.10;
-	defineConstant("min_AF", 0.1);
-	// comment out the above for command line tools
-	*/
+	sc_min = 0.1;
+	sc_max = 1;
+	defineConstant("min_AF", 0.2);
+	defineConstant("max_AF", 0.9);
+	}
 	
 	params = readFile(paramF);
-
+	
 	mu = asFloat(params[0]);
-	//r = asFloat(params[1]);
-	r = 1.25e-7;
-
+	r = asFloat(params[1]);
+	
 	gen = c();
 	Ne = c();
-
+	
 	for (l in 2:(size(params)-1)){
 		gen_Ne = asInteger(strsplit(params[l]));
 		gen = c(gen, gen_Ne[0]);
 		Ne = c(Ne, gen_Ne[1]);
 	}
-
+	
 	defineConstant("GOI", gen[1:(size(gen)-2)]);
 	defineConstant("Ne_GOI", Ne[1:(size(Ne)-2)]);
-
+	
 	defineConstant("N_0", Ne[0]); // N_0
 	defineConstant("last", gen[size(gen)-1]);  // end gen
 	
 	defineConstant("selcoef", runif(1, sc_min, sc_max));
-	//defineConstant("selcoef", 0.05);
-
+	mutgen_early = max(2475-500*exp(-6*(selcoef-0.1)), 2460-180*exp(-7*(selcoef-0.1)));
+	mutgen_late = min(2485-85*exp(-6.8*(selcoef-0.1)), 2480.0);
+	defineConstant("mutgen", rdunif(1, asInteger(mutgen_early), asInteger(mutgen_late)));
+	
 	initializeTreeSeq();
 	initializeMutationRate(0);
 	initializeRecombinationRate(r);
@@ -46,11 +45,12 @@ initialize() {
 	initializeMutationType("m2", 0.5, "f", selcoef);
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 1e5-1);
-	
+
 }
 1 {
 	defineConstant("simID", getSeed());
 	sim.addSubpop("p1", N_0);
+	p1.setSelfingRate(0.03); // account for inbreeding in maize
 	sim.rescheduleScriptBlock(s1, generations=GOI);
 	sim.rescheduleScriptBlock(s2, mutgen-100, mutgen-100);
 	sim.rescheduleScriptBlock(s3, mutgen, mutgen);
@@ -64,8 +64,8 @@ s1 2 {
 }
 
 s2 3 late() {
-	//sim.outputFull("/tmp/slim_" + simID + ".txt"); // modify this b4 deployment
-	sim.treeSeqOutput("/tmp/slim_" + simID + ".trees");
+//	sim.outputFull("tmp/slim_" + simID + ".txt"); // modify this b4 deployment
+	sim.treeSeqOutput("tmp/slim_" + simID + ".trees");
 }
 
 s3 3 late() {
@@ -74,51 +74,47 @@ s3 3 late() {
 }
 
 1: late() {
-	if (sim.generation > mutgen & !exists("FIXED")){
-		if (sim.countOfMutationsOfType(m2) == 0){
-			fixed = (sum(sim.substitutions.mutationType == m2) == 1);
+	if (sim.generation > mutgen & sim.countOfMutationsOfType(m2) == 0){
+		fixed = (sum(sim.substitutions.mutationType == m2) == 1);
 		
-			if (fixed){
-				cat(simID + ": FIXED\n");
-				defineConstant("FIXED", T);
-				//sim.simulationFinished();
-			}
-			else{
-				cat(simID + ": LOST - RESTARTING\n");
-					
-				// go back to generation `mutgen`
-				//sim.readFromPopulationFile("/tmp/slim_" + simID + ".txt");
-				sim.readFromPopulationFile("/tmp/slim_" + simID + ".trees");
-				
-				// start a newly seeded run
-				setSeed(rdunif(1, 0, asInteger(2^32) - 1));
-			}
+		if (fixed){
+			cat(simID + ": FIXED - RESTARTING\n");
 		}
+		else{
+			cat(simID + ": LOST - RESTARTING\n");
+		}
+		// go back to generation `mutgen-100`
+//		sim.readFromPopulationFile("tmp/slim_" + simID + ".txt");
+		sim.readFromPopulationFile("tmp/slim_" + simID + ".trees");
+		
+		// start a newly seeded run
+		setSeed(rdunif(1, 0, asInteger(2^32) - 1));
+		p1.setSelfingRate(0.03); // account for inbreeding in maize
 	}
 }
 
 s4 4 late() {
-	if (exists("FIXED")){
-		mut_freq = 1;
-	} else if (sim.countOfMutationsOfType(m2) == 0){
-		mut_freq = 0;
-		return;
+	if (sim.countOfMutationsOfType(m2) == 0){
+		mut_freq = -1; // either fixed or lost
 	} else {
 		mut_freq = sim.mutationFrequencies(NULL, sim.mutationsOfType(m2));
 	}
-	if (mut_freq < min_AF){
-		cat(simID + ": LOW FREQ - RESTARTING\n");
-				
-		// go back to generation `mutgen`
-		//sim.readFromPopulationFile("/tmp/slim_" + simID + ".txt");
-		sim.readFromPopulationFile("/tmp/slim_" + simID + ".trees");
+	if (mut_freq < min_AF | mut_freq > max_AF){
+		cat(simID + ": FREQ OOB - RESTARTING\n");
+		
+		// go back to generation `mutgen-100`
+//		sim.readFromPopulationFile("tmp/slim_" + simID + ".txt");
+		sim.readFromPopulationFile("tmp/slim_" + simID + ".trees");
 		
 		// start a newly seeded run
 		setSeed(rdunif(1, 0, asInteger(2^32) - 1));
+		p1.setSelfingRate(0.03); // account for inbreeding in maize
 		return;
 	}
-	//cat("Mutation frequency:" + mut_freq);
-	cat(c("%", selcoef, mutgen, mut_freq, outPref, "\n"), sep='\t'); 
+	
+	cat(c("%%", selcoef, mutgen, mut_freq, outPref, "\n"), sep='\t');
 	sim.treeSeqOutput(paste(c(outPref, ".trees"), sep=""));
+//	deleteFile("tmp/slim_" + simID + ".txt");
+	deleteFile("tmp/slim_" + simID + ".trees");
 	sim.simulationFinished();
 }

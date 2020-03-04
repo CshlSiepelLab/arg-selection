@@ -2,10 +2,11 @@
 #$ -N SLiM_array
 #$ -S /bin/bash
 #$ -cwd
-#$ -t 1-5
+#$ -t 1-100
+#$ -tc 50
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
-#$ -l m_mem_free=32G
+#$ -l m_mem_free=20G
 
 echo "_START_$(date)"
 
@@ -40,9 +41,9 @@ RUNS=$5 # no of new runs PER THREAD
 
 for sim in $(seq 1 $RUNS); do
 	RUN_ID=$((LASTIDX+(SGE_TASK_ID-1)*RUNS+sim))
-	${SLIMDIR}/slim -s $RANDOM -t -m -d "paramF='${PARAMF}'" -d "outPref='${OUTPREF}_${RUN_ID}_temp'" $SCRIPT
+	${SLIMDIR}/slim -s $(tr -cd "[:digit:]" < /dev/urandom | head -c 10) -t -m -d "paramF='${PARAMF}'" -d "outPref='${OUTPREF}_${RUN_ID}_temp'" $SCRIPT
 	echo "${RUN_ID}_SLiM_EXITSTAT_$?"
-	${GITPATH}/sims/SLiM_sims/recapitation.py ${OUTPREF}_${RUN_ID}_temp.trees ${PARAMF} $NOCHR ${OUTPREF}_${RUN_ID}_samp
+	/usr/bin/time -f "RSS=%M elapsed=%E" ${GITPATH}/sims/SLiM_sims/recapitation.py ${OUTPREF}_${RUN_ID}_temp.trees ${PARAMF} $NOCHR ${OUTPREF}_${RUN_ID}_samp
 	echo "${RUN_ID}_recap_EXITSTAT_$?"
 	# delete the tree file
 	rm ${OUTPREF}_${RUN_ID}_temp.trees

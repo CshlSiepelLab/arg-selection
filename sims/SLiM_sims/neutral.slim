@@ -2,10 +2,11 @@
 
 initialize() {
 
+	if (exists("slimgui")){
 	// need to define the following Eidos constants
-//	paramF = 'maize_scale_40.param';
-//	defineConstant("outPref", 'test');
-	// comment out above for command-line deployment
+	paramF = 'maize_scale_40.param';
+	defineConstant("outPref", 'test');
+	}
 	
 	params = readFile(paramF);
 
