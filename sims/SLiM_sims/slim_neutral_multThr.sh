@@ -2,8 +2,8 @@
 #$ -N SLiM_array
 #$ -S /bin/bash
 #$ -cwd
-#$ -t 1-100
-#$ -tc 50
+#$ -t 1-40
+#$ -tc 40
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
 #$ -l m_mem_free=20G
@@ -41,10 +41,21 @@ RUNS=$5 # no of new runs PER THREAD
 
 for sim in $(seq 1 $RUNS); do
 	RUN_ID=$((LASTIDX+(SGE_TASK_ID-1)*RUNS+sim))
-	${SLIMDIR}/slim -s $(tr -cd "[:digit:]" < /dev/urandom | head -c 10) -t -m -d "paramF='${PARAMF}'" -d "outPref='${OUTPREF}_${RUN_ID}_temp'" $SCRIPT
-	echo "${RUN_ID}_SLiM_EXITSTAT_$?"
-	/usr/bin/time -f "RSS=%M elapsed=%E" ${GITPATH}/sims/SLiM_sims/recapitation.py ${OUTPREF}_${RUN_ID}_temp.trees ${PARAMF} $NOCHR ${OUTPREF}_${RUN_ID}_samp
-	echo "${RUN_ID}_recap_EXITSTAT_$?"
+	while :
+	do
+		${SLIMDIR}/slim -s $(tr -cd "[:digit:]" < /dev/urandom | head -c 10) -d "paramF='${PARAMF}'" -d "outPref='${OUTPREF}_${RUN_ID}_temp'" $SCRIPT
+		SLIM_RTCD=$?
+		echo "${RUN_ID}_SLiM_EXITSTAT_${SLIM_RTCD}"
+		if ((SLIM_RTCD == 0)); then break ; fi
+	done
+	while :
+	do
+		#/usr/bin/time -f "RSS=%M elapsed=%E" 
+		${GITPATH}/sims/SLiM_sims/recapitation.py ${OUTPREF}_${RUN_ID}_temp.trees ${PARAMF} $NOCHR ${OUTPREF}_${RUN_ID}_samp
+		REC_RTCD=$?
+		echo "${RUN_ID}_recap_EXITSTAT_${REC_RTCD}"
+		if ((REC_RTCD == 0)); then break ; fi
+	done
 	# delete the tree file
 	rm ${OUTPREF}_${RUN_ID}_temp.trees
 done

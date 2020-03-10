@@ -40,8 +40,13 @@ SCMAX=$6 # max SCALED sel. coef
 #   <script file>    : the input script file (stdin may be used instead)
 
 for sim in $(seq 1 $RUNS); do
-	${SLIMDIR}/slim -s $RANDOM -t -m -d "paramF='${PARAMF}'" -d "mutgen_early=$MUTGENEL" -d "mutgen_late=$MUTGENLT" -d "sc_min=$SCMIN" -d "sc_max=$SCMAX" $SCRIPT
-	echo "_EXITSTAT_$?"
+	while :
+	do
+		${SLIMDIR}/slim -s $(tr -cd "[:digit:]" < /dev/urandom | head -c 10) -t -m -d "paramF='${PARAMF}'" -d "mutgen_early=$MUTGENEL" -d "mutgen_late=$MUTGENLT" -d "sc_min=$SCMIN" -d "sc_max=$SCMAX" $SCRIPT
+		SLIM_RTCD=$?
+		echo "${sim}_SLiM_EXITSTAT_${SLIM_RTCD}"
+		if ((SLIM_RTCD == 0)); then break ; fi
+	done
 done
 
 echo "_END_$(date)"

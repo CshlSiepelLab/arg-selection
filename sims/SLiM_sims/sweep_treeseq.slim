@@ -112,8 +112,8 @@ s4 4 late() {
 		return;
 	}
 	
-	cat(c("%%", selcoef, mutgen, mut_freq, outPref, "\n"), sep='\t');
 	sim.treeSeqOutput(paste(c(outPref, ".trees"), sep=""));
+	cat(c("%%", selcoef, mutgen, mut_freq, outPref, "\n"), sep='\t'); // make sure the treeseq file is saved before printing meta-data
 //	deleteFile("tmp/slim_" + simID + ".txt");
 	deleteFile("tmp/slim_" + simID + ".trees");
 	sim.simulationFinished();

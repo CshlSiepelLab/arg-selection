@@ -1,11 +1,8 @@
 #!/bin/bash
-#$ -N SLiM_array
+#$ -N SLiM_patch
 #$ -S /bin/bash
 #$ -cwd
-#$ -t 1-40
-#$ -tc 40
-#$ -o $JOB_ID_$TASK_ID.o
-#$ -e $JOB_ID_$TASK_ID.e
+#$ -j y
 #$ -l m_mem_free=20G
 
 echo "_START_$(date)"
@@ -27,8 +24,8 @@ maxSC=$4
 minAF=$5
 maxAF=$6
 OUTPREF=$7
-LASTIDX=$8
-RUNS=$9 # no of new runs PER THREAD
+START=$8
+END=$9
 
 #usage: slim -v[ersion] | -u[sage] | -testEidos | -testSLiM |
 #   [-l[ong]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]
@@ -43,17 +40,15 @@ RUNS=$9 # no of new runs PER THREAD
 #   -d[efine] <def>  : define an Eidos constant, such as "mu=1e-7"
 #   <script file>    : the input script file (stdin may be used instead)
 
-for sim in $(seq 1 $RUNS); do
-	RUN_ID=$((LASTIDX+(SGE_TASK_ID-1)*RUNS+sim))
+echo Patching $START to $END
+
+for RUN_ID in $(seq $START $END); do
 	while :
 	do
 		${SLIMDIR}/slim -s $(tr -cd "[:digit:]" < /dev/urandom | head -c 10) -d "paramF='${PARAMF}'" -d "outPref='${OUTPREF}_${RUN_ID}'" -d "sc_min=${minSC}" -d "sc_max=${maxSC}" -d "min_AF=${minAF}" -d "max_AF=${maxAF}" $SCRIPT
 		SLIM_RTCD=$?
 		echo "${RUN_ID}_SLiM_EXITSTAT_${SLIM_RTCD}"
-		if ((SLIM_RTCD == 0)); then break ; fi
-	done
-	while :
-	do
+		if ((SLIM_RTCD != 0)); then continue ; fi
 		#/usr/bin/time -f "RSS=%M elapsed=%E"
 		${GITPATH}/sims/SLiM_sims/recapitation.py ${OUTPREF}_${RUN_ID}.trees ${PARAMF} $NOCHR ${OUTPREF}_${RUN_ID}_samp
 		REC_RTCD=$?
