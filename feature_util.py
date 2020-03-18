@@ -9,16 +9,13 @@ import dendropy
 import tskit
 
 RELATE_PATH = '/sonas-hs/siepel/hpc_norepl/home/mo/relate_v1.0.17_x86_64_static/'
-#RELATE_PATH = '/Users/mo/relate_v1.0.16_MacOSX/'
-mut_rate = "2.5e-8"
-
-time_file_path = '/sonas-hs/siepel/hpc_norepl/home/mo/arg-selection/sim2args/time.txt'
-#time_file_path = 'time.txt'
+#RELATE_PATH = '~/relate_v1.0.16_MacOSX/'
+time_file_path = os.path.dirname(os.path.abspath(__file__))+'/sim2args/time.txt'
 
 discretT = np.loadtxt(time_file_path)
 discretT = discretT.astype(int)
 K = len(discretT)
-# delta= 0.001 
+# delta= 0.001
 # tmax = 20000
 # K = 1000
 # discretT = []
@@ -26,7 +23,11 @@ K = len(discretT)
 #     discretT.append((np.exp(i/(K-1)*np.log(1+delta*tmax))-1)/delta)
 # discretT = np.round(discretT)
 
-def run_RELATE(pp, gtm, Ne, var_ppos): # pp- physical position; gtm: genotype matrix; var_ppos: physical position of the variant
+def run_RELATE(pp, gtm, Ne, var_ppos=-1, rho_cMpMb=1.25, mut_rate="2.5e-8"):
+    '''pp- physical position; gtm: genotype matrix; var_ppos: physical position of the variant
+        var_ppos = -1 : default to skip RELATE selection inference, returns pval=0.1
+        rho_cMpMb, mut_rate: default to human
+    '''
     # create RELATE input files
 
     with open("temp.haps", 'w') as hapF:
@@ -46,7 +47,6 @@ def run_RELATE(pp, gtm, Ne, var_ppos): # pp- physical position; gtm: genotype ma
         for i in range(no_dips):
             print('UNR'+str(i+1), 'CEU', 'EUR', 1, file=popF)
 
-    rho_cMpMb = 1.25
     with open("temp.map", 'w') as mapF:
         ppos = 0
         rdist = 0
@@ -88,6 +88,8 @@ def run_RELATE(pp, gtm, Ne, var_ppos): # pp- physical position; gtm: genotype ma
             "-i", "temp_wg",
             "-o", "temp_wg"]
 
+    #clean_cmd = [RELATE_PATH+"bin/Relate", "--mode", "Clean", "-o", "temp"]
+
     loop_cnt = 0
     # run RELATE
     while True:
@@ -119,7 +121,7 @@ def run_RELATE(pp, gtm, Ne, var_ppos): # pp- physical position; gtm: genotype ma
 
     # run RELATE selection inference
     if var_ppos in pp:
-        pval = RELATE_sel_inf(var_ppos)
+        pval = RELATE_sel_inf(var_ppos, mut_rate)
     else:
         pval = 0.1 # selected variant not in the list
 
@@ -131,7 +133,7 @@ def run_RELATE(pp, gtm, Ne, var_ppos): # pp- physical position; gtm: genotype ma
 
     return ts_inferred, pval
 
-def RELATE_sel_inf(locOI):
+def RELATE_sel_inf(locOI, mut_rate):
 
     # cmd = [RELATE_PATH+"bin/RelateCoalescentRate",
     #         "--mode", "EstimatePopulationSize",
