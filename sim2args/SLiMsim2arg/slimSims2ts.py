@@ -10,7 +10,7 @@ import numpy as np
 from feature_util import run_RELATE
 
 helpMsg = '''
-        usage: $./slimSims2ts.py <.param file> <scale> <`n`/`s`> <no_sims/meta_file_path> <thr> <tot_thr> <inPref> <outPref>
+        usage: $./slimSims2ts.py <.param file> <scale> <max_no_sims> <thr> <tot_thr> <inPref> <outPref>
             Take slim simulation output, run RELATE and save both true and inferred tree sequence file for each sim
             <inPref> and <outPref> should be directory names!
 '''
@@ -57,23 +57,17 @@ def cd(newdir):
         os.chdir(prevdir)
 
 def main(args):
-    if len(args) != 9:    #8 arguments
+    if len(args) != 8:    #7 arguments
         return helpMsg
 
     parent_dir = os.getcwd() # directory where the job is submitted
     param_path = args[1]
     scale = int(args[2])
-    mode = args[3]
-    if mode == 'n':
-        no_sims = int(args[4])
-    elif mode == 's':
-        metaF = args[4]
-    else:
-        return helpMsg
-    thr = int(args[5]) # should be 1-indexed
-    tot_thr = int(args[6])
-    inPref = args[7]
-    outPref = args[8]
+    no_sims = int(args[3])
+    thr = int(args[4]) # should be 1-indexed
+    tot_thr = int(args[5])
+    inPref = args[6]
+    outPref = args[7]
 
     with open(param_path, "r") as paramF:
         lines = paramF.readlines()
@@ -85,10 +79,10 @@ def main(args):
     rho_cMpMb = scaled_rho/scale*100*1e6 # 1cM = 1e-2 crossover
     N0 = scaled_N0*scale
 
-    if mode == 's':
-        meta_data = np.genfromtxt(metaF, usecols=(1, 2, 3, 4), dtype=None)
-        # e.g. `%% 0.100992 2347 0.520421 SLiM_trial_swp/SLiM_trial_swp_4501`
-        no_sims = meta_data.shape[0]
+    # if mode == 's':
+    #     meta_data = np.genfromtxt(metaF, usecols=(1, 2, 3, 4), dtype=None)
+    #     # e.g. `%% 0.100992 2347 0.520421 SLiM_trial_swp/SLiM_trial_swp_4501`
+    #     no_sims = meta_data.shape[0]
 
     tasks = no_sims//tot_thr
     a_idx = (thr-1)*tasks # inclusive
@@ -103,28 +97,28 @@ def main(args):
     wd = outPref+'/'+'RELATE_temp_'+str(thr)
     os.mkdir(wd, 0o755)
 
-    idx_ls = []
-    sc_ls = []
-    onset_ls = []
-    caf_ls = []
+    # idx_ls = []
+    # sc_ls = []
+    # onset_ls = []
+    # caf_ls = []
     #fv_idx_ls = []
-    cnt = 0
+    #cnt = 0
 
     with cd(wd):
         for r_idx in range(a_idx, b_idx):
-            if mode == 'n':
-                ID = r_idx + 1 # convert 0-based index to 1-based index
-                sim_path = parent_dir+"/"+inPref+"/"+inPref+"_"+str(ID)+"_samp.trees"
-            elif mode == 's':
-                ID = int(meta_data[r_idx][3].split(b'_')[-1]) # retrieve 1-based index from meta file
-                sim_path = parent_dir+"/"+meta_data[r_idx][3].decode()+"_samp.trees"
+            # if mode == 'n':
+            ID = r_idx + 1 # convert 0-based index to 1-based index
+            sim_path = parent_dir+"/"+inPref+"/"+inPref+"_"+str(ID)+"_samp.trees"
+            # elif mode == 's':
+            #     ID = int(meta_data[r_idx][3].split(b'_')[-1]) # retrieve 1-based index from meta file
+            #     sim_path = parent_dir+"/"+meta_data[r_idx][3].decode()+"_samp.trees"
 
             if not os.path.isfile(sim_path): continue
-            if mode == 's':
-                idx_ls.append(ID)
-                sc_ls.append(meta_data[r_idx][0])
-                onset_ls.append(meta_data[r_idx][1])
-                caf_ls.append(meta_data[r_idx][2])
+            # if mode == 's':
+            #     idx_ls.append(ID)
+            #     sc_ls.append(meta_data[r_idx][0])
+            #     onset_ls.append(meta_data[r_idx][1])
+            #     caf_ls.append(meta_data[r_idx][2])
 
             outFP = parent_dir+"/"+outPref+"/"+outPref+"_"+str(ID)
             if os.path.isfile(outFP+"_tru.trees") and os.path.isfile(outFP+"_inf.trees"): continue
@@ -137,8 +131,8 @@ def main(args):
             ts_tru.dump(outFP+"_tru.trees")
             ts_inf.dump(outFP+"_inf.trees")
 
-    if mode == 's': np.savez_compressed(parent_dir+"/"+outPref+"/"+outPref+"_meta", 
-        idx=idx_ls, sc=sc_ls, onset=onset_ls, caf=caf_ls)
+    # if mode == 's': np.savez_compressed(parent_dir+"/"+outPref+"/"+outPref+"_meta_"+str(thr), 
+    #     idx=idx_ls, sc=sc_ls, onset=onset_ls, caf=caf_ls)
     os.rmdir(wd)
 
     return 0
