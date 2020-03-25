@@ -63,7 +63,6 @@ def main(args):
     meta_df = np.empty((0, 5)) # dataframe containing the meta-data [idx, sc, onset, AF, var_pos]
 
     for r_idx in range(a_idx, b_idx):
-        print(">>>", r_idx, "/", b_idx, flush=True)
         if mode == 'n':
             ID = r_idx + 1 # convert 0-based index to 1-based index
             ts_path = inPref+"_"+str(ID)+"_"+tree_type+".trees"
@@ -94,6 +93,7 @@ def main(args):
             onset = onset_ls[r_idx]
             AF = caf_ls[r_idx]
 
+        print(">>>", r_idx, "/", b_idx, ts_path, ":", vOI_pos, flush=True)
         fea_mtx = utils.ts2feature(ts_eg, vOI_pos, vOI_gt, win_l, win_r, discreT)
 
         fea_df = np.concatenate((fea_df, np.array([fea_mtx])))

@@ -3,7 +3,7 @@
 #$ -S /bin/bash
 #$ -cwd
 #$ -t 1-200
-#$ -tc 200
+#$ -tc 100
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
 #$ -l m_mem_free=8G

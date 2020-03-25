@@ -24,7 +24,7 @@ def samp_var(geno_mtx, pos_ls, AF_min=0.2, AF_max=0.9):
     AF = np.mean(geno_mtx, axis=1)
     target = np.random.uniform(AF_min, AF_max)
     for idx in np.argsort(np.abs(AF - target)):
-        if pos_ls[idx] > 45000 and pos_ls[idx] < 55000:
+        if pos_ls[idx] > 46000 and pos_ls[idx] < 54000: # make sure the ends are covered by gene trees
             return idx
 
 def discretizeT(delta=0.01, tmax=1e5, K=100):
@@ -77,9 +77,13 @@ def ts2feature(ts, vOI_pos, vOI_gt, ws_offset, we_offset, time_pts):
     seg_fea = np.empty((0, 3, K)) # temp storage of features of the trees in one segment/window
     seg_size = []
     
+    tcnt = 0
+    ttot = ts.num_trees
     for tree in ts.trees():
+        tcnt += 1
         left, right = map(int, tree.interval) # apply function int() to tree.interval, left is inclusive and right is exclusive
         if right <= win_start[0]: continue
+        if tcnt == ttot: right = 1e5 # coerce the last tree to cover the entire region
         dp_tree = dendropy.Tree.get(data=tree.newick(precision=2), schema="newick")
         fea = cnt_anc_der_lin(dp_tree, vOI_gt, time_pts) # shape: (3, K)
         
