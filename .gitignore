@@ -1,0 +1,8 @@
+# OS generated files #
+######################
+**/._*
+**/.DS_Store
+
+# Jupyter notebook generated files #
+####################################
+**/.ipynb_checkpoints
