@@ -1,11 +1,12 @@
 #!/bin/bash
-#$ -N partition_pkl
+#$ -N part_pkl
 #$ -S /bin/bash
 #$ -cwd
-#$ -j y
-#$ -l m_mem_free=100G
-
-# -pe threads 32
+#$ -t 1-10
+#$ -tc 10
+#$ -o $JOB_ID_$TASK_ID.o
+#$ -e $JOB_ID_$TASK_ID.e
+#$ -l m_mem_free=16G
 
 echo "_START_$(date)"
 
@@ -14,33 +15,13 @@ module load Anaconda3/5.3.0
 
 GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
 FILEPATH=$1 #path to pickle files, ending with '/''
-SWPPREF=$2
-NEUPREF=$3
-PARTITIONI=$4
-PARTITIONO=$5
+PKLPREF=$2
 
-# usage: $./partition.py <pkl_path> <swp_pkl_pref> <neu_pkl_pref> <part_i> <part_o>
-#     - makes directories <swp_pkl_pref> <neu_pkl_pref>
-#     - <part_i>: # of input partitions
-#     - <part_o>: # of output partitions
-#     - outputs <out_pref>_pgv_<thread>.pkl files in respective directory
-#     - calculates and normalizes the iHS score
-#     - sweep and neutral files needed simultaneously for normalization purpose
+PARTITIONI=$((SGE_TASK_ID-1))
 
-${GITPATH}/arg-selection/sim2args/partition.py $FILEPATH $SWPPREF $NEUPREF $PARTITIONI $PARTITIONO
+PARTOPI=$3
+
+${GITPATH}/arg-selection/sim2args/partition.py $FILEPATH $PKLPREF $PARTITIONI $PARTOPI
 echo "_EXITSTAT_$?"
-
-# HANDLEFILE=handles.txt
-
-# HANDLELS=($(awk '{print $1}' $HANDLEFILE))
-# THREADLS=($(awk '{print $2}' $HANDLEFILE))
-
-# for LINE in $(seq 0 12); do
-# 	echo Partitioning discoal_${HANDLELS[$LINE]}.pkl into ${THREADLS[$LINE]} files.
-# 	./partition.py /sonas-hs/siepel/hpc_norepl/home/hijazi/subset/discoal_${HANDLELS[$LINE]}.pkl discoal_subset_${HANDLELS[$LINE]} ${THREADLS[$LINE]}
-# 	echo "_EXITSTAT_$?"
-
-# done
-
 echo "_END_$(date)"
 exit

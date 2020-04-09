@@ -3,7 +3,7 @@
 #$ -S /bin/bash
 #$ -cwd
 #$ -j y
-#$ -l m_mem_free=32G
+#$ -l m_mem_free=48G
 
 # -pe threads 32
 
@@ -14,15 +14,16 @@ module load Anaconda3/5.3.0
 
 GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
 
-HANDLE=$1
-TAG=$2 # some unique identifier
-THREAD=$3
+ZEROBASE=$1 # Flag indicating if threads are zero-based (1- zero base; 0- NOT zero base)
+HANDLE=$2
+TAG=$3 # some unique identifier
+THREAD=$4
 
 NE=188088
-FLANKINGTR=2
+FLANKINGTR=5
 
 echo Patching ${HANDLE}_${TAG}_${THREAD}
-${GITPATH}/arg-selection/sim2args/sim2arg.py $FLANKINGTR $HANDLE $NE $THREAD $TAG
+${GITPATH}/arg-selection/sim2args/sim2arg.py $FLANKINGTR $HANDLE $NE $((THREAD-ZEROBASE)) $TAG
 echo "_EXITSTAT_$?"
 
 echo "_END_$(date)"

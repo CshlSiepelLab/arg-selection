@@ -10,7 +10,7 @@ import tskit
 
 RELATE_PATH = '/sonas-hs/siepel/hpc_norepl/home/mo/relate_v1.0.17_x86_64_static/'
 #RELATE_PATH = '~/relate_v1.0.16_MacOSX/'
-time_file_path = os.path.dirname(os.path.abspath(__file__))+'/sim2args/time.txt'
+time_file_path = os.path.dirname(os.path.abspath(__file__))+'/sim2args/time_200.txt'
 
 discretT = np.loadtxt(time_file_path)
 discretT = discretT.astype(int)
@@ -73,6 +73,7 @@ def run_RELATE(pp, gtm, Ne, var_ppos=-1, rho_cMpMb=1.25, mut_rate="2.5e-8"):
             "-m", mut_rate,
             "--poplabels", "temp.poplabels",
             "--threshold", "10",
+            "--num_iter", "10", # default is 5
             "-o", "temp_popsize"]
 
     wg_cmd = [RELATE_PATH+"scripts/EstimatePopulationSize/EstimatePopulationSize.sh",
@@ -171,8 +172,11 @@ def xtract_fea(tree, var, base):
     discoal tree tips range from 0 to 197 (base = 0)
     RELATE tree tips range from 1 to 198 (base = 1)
     '''
-
-    distance_from_root = np.max(tree.calc_node_root_distances()) - discretT
+    lf_dist = np.floor(tree.calc_node_root_distances()) # round down!
+    if (np.max(lf_dist) - np.min(lf_dist)) > 1:
+        print("Anomaly: leaf age -", lf_dist, flush=True)
+    distance_from_root = np.min(lf_dist) - discretT
+    #distance_from_root = np.max(tree.calc_node_root_distances()) - discretT
     ones = np.where(var==1)[0] + base
     Canc = []
     Cder = []
@@ -283,7 +287,11 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
             #stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, avgDAF], [length, iHS, H1, DAF]))
             stat_mtx = np.vstack((stat_mtx, [length, H1, avgDAF], [length, H1, DAF]))
         else:
-            root_h = st.max_distance_from_root()
+            lfrt_dist = np.floor(st.calc_node_root_distances()) # round down!
+            if (np.max(lfrt_dist) - np.min(lfrt_dist)) > 1:
+                print("Anomaly: leaf age -", lfrt_dist, flush=True)
+            root_h = np.min(lfrt_dist)
+            #root_h = st.max_distance_from_root()
             T = root_h - discretT
             st_fea = np.array([st.num_lineages_at(t) for t in T])
             lin_mtx = np.vstack((lin_mtx, st_fea))

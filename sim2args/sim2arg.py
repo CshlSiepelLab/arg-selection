@@ -10,9 +10,10 @@ import pickle
 import feature_util as fea
 
 helpMsg = '''
-        usage: $./sim2arg.py <no_st> <handle> <Ne> <thread #, 1-based> <TAG>
+        usage: $./sim2arg.py <no_st> <handle> <Ne> <thread #> <TAG>
             Takes a *partitioned* pickle file, runs RELATE to infer ARGs and extract features.
             - <no_st> >=0 : number of flanking gene trees to include on EACH side for feature extraction
+            Thread # must match the partitioned pickle files
 '''
 
 # @contextmanager is just an easier way of saying cd = contextmanager(cd)
@@ -52,9 +53,10 @@ def main(args):
     os.mkdir(wd, 0o755)
 
     with cd(wd):
-        iHS_idx = iHS_df[:, 0]-iHS_df[0, 0]
+        #iHS_idx = iHS_df[:, 0]-iHS_df[0, 0]
         for r_idx in range(len(list_pos)):
-            norm_iHS = iHS_df[iHS_idx==r_idx, 1:3]
+            #norm_iHS = iHS_df[iHS_idx==r_idx, 1:3]
+            norm_iHS = None
             lin, stat, relate_p = fea.infer_ARG_fea(list_pos[r_idx], list_geno[r_idx], list_variant[r_idx], list_var_pos[r_idx], Ne, no_st, norm_iHS)
             lin_ls.append(lin)
             stat_ls.append(stat)

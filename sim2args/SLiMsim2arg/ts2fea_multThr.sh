@@ -27,8 +27,40 @@ INPREF=$3
 TTYPE=$4 # <`tru`/`inf`>
 OUTPREF=$5
 
-${GITPATH}/sim2args/SLiMsim2arg/ts2feature.py $MODE $META $THR $TOTTHR $INPREF $TTYPE $OUTPREF
-echo "_EXITSTAT_$?"
+### FOR PATCHING PURPOSES ###
+
+## ARRAY TASKS RUNNING ##
+PR_JOB_ID=64817910
+RUNNING=( $(qstat | grep $PR_JOB_ID | awk '{print $10}') )
+
+## SUCCESSFULLY FINISHED ##
+PR_OUTPREF=Trial_fea/trial_swp
+RAN=( $(ls ${PR_OUTPREF}_meta_*.npy | awk -F'[_.]' '{print $(NF-1)}') )
+
+EXCLUDE=( "${RUNNING[@]}" "${RAN[@]}" )
+
+echo "EXCLUDE: ${EXCLUDE[@]}"
+echo "Total excluded: ${#EXCLUDE[@]}"
+
+if echo ${EXCLUDE[@]} | grep -q -w $THR; then 
+    echo $THR "SKIPPED"
+else
+    if [ -f ${PR_OUTPREF}_fea_${THR}.npy ]; then
+        echo "REMOVING:"
+        ls -lh ${PR_OUTPREF}_fea_${THR}.npy
+        rm ${PR_OUTPREF}_fea_${THR}.npy
+    fi
+    echo $THR "EXECUTED"
+    ${GITPATH}/sim2args/SLiMsim2arg/ts2feature.py $MODE $META $THR $TOTTHR $INPREF $TTYPE $OUTPREF
+    echo "_EXITSTAT_$?"
+fi
+
+#############################
+
+### NORMAL RUN ###
+# ${GITPATH}/sim2args/SLiMsim2arg/ts2feature.py $MODE $META $THR $TOTTHR $INPREF $TTYPE $OUTPREF
+# echo "_EXITSTAT_$?"
+##################
 
 echo "_END_$(date)"
 exit
