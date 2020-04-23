@@ -10,7 +10,8 @@ import tskit
 
 RELATE_PATH = '/sonas-hs/siepel/hpc_norepl/home/mo/relate_v1.0.17_x86_64_static/'
 #RELATE_PATH = '~/relate_v1.0.16_MacOSX/'
-time_file_path = os.path.dirname(os.path.abspath(__file__))+'/sim2args/time_200.txt'
+time_file_path = os.path.dirname(os.path.abspath(__file__))+'/sim2args/time.txt'
+ii32MAX = np.iinfo(np.int32).max
 
 discretT = np.loadtxt(time_file_path)
 discretT = discretT.astype(int)
@@ -66,15 +67,17 @@ def run_RELATE(pp, gtm, Ne, var_ppos=-1, rho_cMpMb=1.25, mut_rate="2.5e-8"):
             "--sample", "temp.sample",
             "--map", "temp.map",
             "-o", "temp",
-            "--memory", "8"]
+            #"--memory", "8", # default is 5 GB
+            "--seed", "1"]
 
     popsize_cmd = [RELATE_PATH+"scripts/EstimatePopulationSize/EstimatePopulationSize.sh",
             "-i", "temp",
             "-m", mut_rate,
             "--poplabels", "temp.poplabels",
             "--threshold", "10",
-            "--num_iter", "10", # default is 5
-            "-o", "temp_popsize"]
+            #"--num_iter", "10", # default is 5
+            "-o", "temp_popsize",
+            "--seed", "1"]
 
     wg_cmd = [RELATE_PATH+"scripts/EstimatePopulationSize/EstimatePopulationSize.sh",
             "-i", "temp",
@@ -95,7 +98,14 @@ def run_RELATE(pp, gtm, Ne, var_ppos=-1, rho_cMpMb=1.25, mut_rate="2.5e-8"):
     # run RELATE
     while True:
         loop_cnt += 1
-        print("Milestone: Running RELATE pipeline, try_", loop_cnt, sep='')
+        if loop_cnt > 20:
+            print("Milestone: attempt exceeds 20, ABORTS!!")
+            subprocess.call("rm temp*", shell=True)
+            return None, None
+
+        print("Milestone: Running RELATE pipeline, try_", loop_cnt, sep='', flush=True)
+        relate_cmd[-1] = str(np.random.randint(ii32MAX))
+        popsize_cmd[-1] = str(np.random.randint(ii32MAX))
         relate_proc = subprocess.run(relate_cmd)
         if relate_proc.returncode != 0: continue
         #relate_proc.check_returncode()
@@ -172,11 +182,11 @@ def xtract_fea(tree, var, base):
     discoal tree tips range from 0 to 197 (base = 0)
     RELATE tree tips range from 1 to 198 (base = 1)
     '''
-    lf_dist = np.floor(tree.calc_node_root_distances()) # round down!
-    if (np.max(lf_dist) - np.min(lf_dist)) > 1:
-        print("Anomaly: leaf age -", lf_dist, flush=True)
-    distance_from_root = np.min(lf_dist) - discretT
-    #distance_from_root = np.max(tree.calc_node_root_distances()) - discretT
+    # lf_dist = np.floor(tree.calc_node_root_distances()) # round down!
+    # if (np.max(lf_dist) - np.min(lf_dist)) > 1:
+    #     print("Anomaly: leaf age -", lf_dist, flush=True)
+    # distance_from_root = np.min(lf_dist) - discretT
+    distance_from_root = np.max(tree.calc_node_root_distances()) - discretT
     ones = np.where(var==1)[0] + base
     Canc = []
     Cder = []
@@ -221,7 +231,7 @@ def calc_H1(gt_mtx):
 
     return H1
 
-def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
+def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, rho_1e8, no_ft, norm_iHS):
     '''Format input, run RELATE on variants of a simulated region and extract features of a region from inferred tree sequence
         Features include # of lineages at discretized time points & length of non-recomb. segment of surrounding gene trees,
         as well as the # of anc. & der. lineages at discretized time points, length of n.r.s. and der. allelic freq. at the focal site
@@ -247,7 +257,9 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
         var_idx = np.where(pos_ls == var_pos)[0][0]
         var_ppos = p[var_idx]
 
-    ts_inferred, RELATE_pval = run_RELATE(p, geno_mtx, Ne, var_ppos)
+    ts_inferred, RELATE_pval = run_RELATE(p, geno_mtx, Ne, var_ppos, rho_1e8)
+    if ts_inferred is None:
+        return None, None, None
 
     trees = []
     intervals = np.empty((0,2), int)
@@ -287,11 +299,11 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, no_ft, norm_iHS):
             #stat_mtx = np.vstack((stat_mtx, [length, iHS, H1, avgDAF], [length, iHS, H1, DAF]))
             stat_mtx = np.vstack((stat_mtx, [length, H1, avgDAF], [length, H1, DAF]))
         else:
-            lfrt_dist = np.floor(st.calc_node_root_distances()) # round down!
-            if (np.max(lfrt_dist) - np.min(lfrt_dist)) > 1:
-                print("Anomaly: leaf age -", lfrt_dist, flush=True)
-            root_h = np.min(lfrt_dist)
-            #root_h = st.max_distance_from_root()
+            # lfrt_dist = np.floor(st.calc_node_root_distances()) # round down!
+            # if (np.max(lfrt_dist) - np.min(lfrt_dist)) > 1:
+            #     print("Anomaly: leaf age -", lfrt_dist, flush=True)
+            # root_h = np.min(lfrt_dist)
+            root_h = st.max_distance_from_root()
             T = root_h - discretT
             st_fea = np.array([st.num_lineages_at(t) for t in T])
             lin_mtx = np.vstack((lin_mtx, st_fea))

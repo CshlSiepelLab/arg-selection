@@ -1,7 +1,18 @@
+#!/bin/bash
+#$ -N vcf2haps_samp
+#$ -S /bin/bash
+#$ -cwd
+#$ -j y
+#$ -l m_mem_free=32G
+
+echo "_START_$(date)"
+module load Anaconda3/5.3.0
+
 GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
 RELATE_PATH="/sonas-hs/siepel/hpc_norepl/home/mo/relate_v1.0.17_x86_64_static"
+#GENELIST='${GITPATH}/arg-selection/genome2args/pos_sel_genes.txt'
 
-module load Anaconda3/5.3.0
+GENELIST=$1
 
 while IFS=$'\t' read -r GENE CHR FROM TO; do
 	mkdir $GENE
@@ -23,4 +34,7 @@ while IFS=$'\t' read -r GENE CHR FROM TO; do
 	${GITPATH}/arg-selection/genome2args/make_uniform_map.py ${GENE}/${GENE}_chr${CHR}_${FROM}_${TO}.haps 1.25 ${GENE}/${GENE}_chr${CHR}_${FROM}_${TO}
 	echo "MAKE_MAP_EXITSTAT_$?" >> ${GENE}/${GENE}_chr${CHR}_${FROM}_${TO}.log
 
-done < ${GITPATH}/arg-selection/genome2args/pos_sel_genes.txt
+done < $GENELIST
+
+echo "_END_$(date)"
+exit

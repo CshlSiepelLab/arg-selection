@@ -2,11 +2,13 @@
 #$ -N slim2ts_arr
 #$ -S /bin/bash
 #$ -cwd
-#$ -t 1-50
-#$ -tc 50
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
 #$ -l m_mem_free=32G
+
+## Specify with qsub
+# -t 1-50
+# -tc 50
 
 echo "_START_$(date)"
 
@@ -20,16 +22,15 @@ GITPATH="/sonas-hs/siepel/hpc_norepl/home/mo/arg-selection"
 
 PARAMF=$1
 SCALE=$2
-MODE=$3 # <`n`/`s`>
-META=$4 # <no_sims/meta_file_path>
-
+#MODE=$3 # <`n`/`s`>
+#META=$4 # <no_sims/meta_file_path>
+NOSIMS=$3
 THR=$SGE_TASK_ID
-TOTTHR=50
-
+TOTTHR=$4
 INPREF=$5
 OUTPREF=$6
 
-${GITPATH}/sim2args/SLiMsim2arg/slimSims2ts.py $PARAMF $SCALE $MODE $META $THR $TOTTHR $INPREF $OUTPREF
+${GITPATH}/sim2args/SLiMsim2arg/slimSims2ts.py $PARAMF $SCALE $NOSIMS $THR $TOTTHR $INPREF $OUTPREF
 echo "_EXITSTAT_$?"
 
 echo "_END_$(date)"

@@ -2,16 +2,20 @@
 #$ -N RELATE_array
 #$ -S /bin/bash
 #$ -cwd
-#$ -t 1-13
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
 #$ -l m_mem_free=32G
+
+## Specify at submit time, match # of line in GENELIST file
+# -t 1-13
 
 echo "_START_$(date)"
 
 GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
 RELATE_PATH="/sonas-hs/siepel/hpc_norepl/home/mo/relate_v1.0.17_x86_64_static"
-GENELIST=${GITPATH}/arg-selection/genome2args/pos_sel_genes.txt
+#GENELIST=${GITPATH}/arg-selection/genome2args/pos_sel_genes.txt
+
+GENELIST=$1
 
 GENEL=($(awk '{print $1}' $GENELIST))
 CHRL=($(awk '{print $2}' $GENELIST))
@@ -48,7 +52,6 @@ ${RELATE_PATH}/bin/Relate \
 echo "RELATE_EXITSTAT_$?"
 
 # re-estimate branch lengths
-
 ${RELATE_PATH}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
             -i ${GENE}_chr${CHR}_${FROM}_${TO} \
             -m 2.5e-8 \
@@ -57,7 +60,7 @@ ${RELATE_PATH}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
             -o ${GENE}_chr${CHR}_${FROM}_${TO}_popsize
 echo "POPSIZE_EXITSTAT_$?"
 
-        # re-estimate branch length for ENTIRE genealogy
+# re-estimate branch length for ENTIRE genealogy
 ${RELATE_PATH}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
             -i ${GENE}_chr${CHR}_${FROM}_${TO} \
             -m 2.5e-8 \
@@ -67,7 +70,6 @@ ${RELATE_PATH}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
             --num_iter 1 \
             -o ${GENE}_chr${CHR}_${FROM}_${TO}_wg
 echo "WG_EXITSTAT_$?"
-
 
 ${RELATE_PATH}/bin/RelateFileFormats \
 	--mode ConvertToTreeSequence \

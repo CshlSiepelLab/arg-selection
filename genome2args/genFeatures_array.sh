@@ -2,10 +2,12 @@
 #$ -N genFeatures_array
 #$ -S /bin/bash
 #$ -cwd
-#$ -t 1-13
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
 #$ -l m_mem_free=32G
+
+## Specify at submit time, match # of line in GENELIST file
+# -t 1-13
 
 echo "_START_$(date)"
 
@@ -13,9 +15,9 @@ module purge
 module load Anaconda3/5.3.0
 
 GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
-GENELIST=${GITPATH}/arg-selection/genome2args/pos_sel_genes.txt
-
-TAG=$1
+#GENELIST=${GITPATH}/arg-selection/genome2args/pos_sel_genes.txt
+GENELIST=$1
+TAG=$2
 
 GENEL=($(awk '{print $1}' $GENELIST))
 CHRL=($(awk '{print $2}' $GENELIST))

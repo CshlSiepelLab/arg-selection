@@ -4,10 +4,9 @@
 #$ -cwd
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
-#$ -l m_mem_free=48G
+#$ -l m_mem_free=64G
 
-## These should be passed in while submitting the job
-# -t 1-100
+# -t 1-50
 # -tc 50
 
 echo "_START_$(date)"
@@ -20,18 +19,17 @@ module load GSL/2.5
 
 SLIMDIR="/sonas-hs/siepel/hpc_norepl/home/mo/maiz/build"
 GITPATH="/sonas-hs/siepel/hpc_norepl/home/mo/arg-selection"
-SCRIPT="${GITPATH}/sims/SLiM_sims/sweep_treeseq.slim"
+SCRIPT="${GITPATH}/sims/SLiM_sims/sweep_test.slim"
 
 PARAMF=$1
 NOCHR=$2
-minSC=$3
-maxSC=$4
-minAF=$5
-maxAF=$6
-HNDL=$7
+SCF=$3 # file containing sel coef to be sampled, one per line
+minAF=$4
+maxAF=$5
+HNDL=$6
 OUTPREF=${HNDL}/${HNDL}
-LASTIDX=$8
-RUNS=$9 # no of new runs PER THREAD
+LASTIDX=$7
+RUNS=$8 # no of new runs PER THREAD
 
 #usage: slim -v[ersion] | -u[sage] | -testEidos | -testSLiM |
 #   [-l[ong]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]
@@ -52,9 +50,10 @@ for sim in $(seq 1 $RUNS); do
         echo "$RUN_ID was successful, SKIPPING"
         continue
     fi
+    SELCOEF=$(shuf -n 1 $SCF)
     while :
     do
-        ${SLIMDIR}/slim -s $(tr -cd "[:digit:]" < /dev/urandom | head -c 10) -d "paramF='${PARAMF}'" -d "outPref='${OUTPREF}_${RUN_ID}_temp'" -d "sc_min=${minSC}" -d "sc_max=${maxSC}" -d "min_AF=${minAF}" -d "max_AF=${maxAF}" $SCRIPT | tee ${JOB_ID}_${SGE_TASK_ID}.buf
+        ${SLIMDIR}/slim -s $(tr -cd "[:digit:]" < /dev/urandom | head -c 10) -d "paramF='${PARAMF}'" -d "outPref='${OUTPREF}_${RUN_ID}_temp'" -d "SC=${SELCOEF}" -d "min_AF=${minAF}" -d "max_AF=${maxAF}" $SCRIPT | tee ${JOB_ID}_${SGE_TASK_ID}.buf
         SLIM_RTCD=${PIPESTATUS[0]}
         echo "${RUN_ID}_SLiM_EXITSTAT_${SLIM_RTCD}"
         if ((SLIM_RTCD != 0)); then continue ; fi

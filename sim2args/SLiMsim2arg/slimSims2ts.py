@@ -104,6 +104,7 @@ def main(args):
     #fv_idx_ls = []
     #cnt = 0
 
+    log_f = open(outPref+"_"+str(thr)+".log", 'a')
     with cd(wd):
         for r_idx in range(a_idx, b_idx):
             # if mode == 'n':
@@ -130,9 +131,11 @@ def main(args):
 
             ts_tru.dump(outFP+"_tru.trees")
             ts_inf.dump(outFP+"_inf.trees")
+            print(ID, "SUCCESS", file=log_f)
 
     # if mode == 's': np.savez_compressed(parent_dir+"/"+outPref+"/"+outPref+"_meta_"+str(thr), 
     #     idx=idx_ls, sc=sc_ls, onset=onset_ls, caf=caf_ls)
+    log_f.close()
     os.rmdir(wd)
 
     return 0

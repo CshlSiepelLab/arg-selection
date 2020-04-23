@@ -6,7 +6,8 @@ import numpy as np
 import os.path
 
 helpMsg = '''
-        usage: $./combine_single.py <handle> <TAG> <total threads> <oTAG>
+        usage: $./combine_single.py <handle> <TAG> <base> <total threads> <oTAG>
+            <base> (0- zero-base; 1- one-base)
             Combine <handle>/<handle>_<TAG>_inf_fea_*.pickle
             into <handle>_inf_fea_<oTAG>.pkl
             To load the resulting pickle file, run:
@@ -15,19 +16,21 @@ helpMsg = '''
 '''
 
 def main(args):
-    if len(args) != 5:    #4 arguments
+    if len(args) != 6:    #5 arguments
         return helpMsg
 
     handle = args[1]
     tag = args[2]
-    no_threads = int(args[3])
-    oTAG = args[4]
+    base = int(args[3])
+    no_threads = int(args[4])
+    oTAG = args[5]
 
     lin_ls = []
     stat_ls = []
     relate_ls = []
 
-    for t in range(no_threads):
+    for thr in range(no_threads):
+        t = thr + base
         Path = handle+'/'+handle+'_'+tag+'_inf_fea_'+str(t)+'.pickle'
         with open(Path, 'rb') as f:
             lin, stat, relate = pickle.load(f)
