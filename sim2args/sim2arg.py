@@ -10,10 +10,9 @@ import pickle
 import feature_util as fea
 
 helpMsg = '''
-        usage: $./sim2arg.py <no_st> <handle> <Ne> <rho> <thread #> <TAG>
+        usage: $./sim2arg.py <no_st> <handle> <Ne> <thread #> <TAG>
             Takes a *partitioned* pickle file, runs RELATE to infer ARGs and extract features.
             - <no_st> >=0 : number of flanking gene trees to include on EACH side for feature extraction
-            - <rho> : recombination rate (in 1e-8 unit)
             Thread # must match the partitioned pickle files
 '''
 
@@ -28,22 +27,22 @@ def cd(newdir):
         os.chdir(prevdir)
 
 def main(args):
-    if len(args) != 7:    #6 arguments
+    if len(args) != 6:    #5 arguments
         return helpMsg
 
     no_st = int(args[1])
     handle = args[2]
-    thread = args[5] # only used as a string
-    tag = args[6]
+    thread = args[4] # only used as a string
+    tag = args[5]
 
     Ne = int(args[3])
-    Ne = str(2*Ne)
-    rho = float(args[4])
+    Nex2 = str(2*Ne)
+    #rho = float(args[4]) # deprecated
 
     pkl_path = handle+'/'+handle+'_pgv_'+thread+'.pkl'
 
     with open(pkl_path, 'rb') as f:  # Python 3: open(..., 'rb')
-        list_pos, list_geno, list_variant, list_var_pos, iHS_df = pickle.load(f)
+        list_pos, list_geno, list_variant, list_var_pos, list_mu, list_rho, iHS_df = pickle.load(f)
 
     lin_ls = []
     stat_ls = []
@@ -59,7 +58,9 @@ def main(args):
         for r_idx in range(len(list_pos)):
             #norm_iHS = iHS_df[iHS_idx==r_idx, 1:3]
             norm_iHS = None
-            lin, stat, relate_p = fea.infer_ARG_fea(list_pos[r_idx], list_geno[r_idx], list_variant[r_idx], list_var_pos[r_idx], Ne, rho, no_st, norm_iHS)
+            mu = "{:.2e}".format(list_mu[r_idx]/(4*Ne*1e5)) # convert to string
+            rho = list_rho[r_idx]/(4*Ne*1e5)*1e8 # in 1e8 unit
+            lin, stat, relate_p = fea.infer_ARG_fea(list_pos[r_idx], list_geno[r_idx], list_variant[r_idx], list_var_pos[r_idx], Nex2, mu, rho, no_st, norm_iHS)
             if lin is None:
                 missing_idx.append(r_idx)
                 #continue

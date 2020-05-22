@@ -231,7 +231,7 @@ def calc_H1(gt_mtx):
 
     return H1
 
-def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, rho_1e8, no_ft, norm_iHS):
+def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, mu_string, rho_1e8, no_ft, norm_iHS):
     '''Format input, run RELATE on variants of a simulated region and extract features of a region from inferred tree sequence
         Features include # of lineages at discretized time points & length of non-recomb. segment of surrounding gene trees,
         as well as the # of anc. & der. lineages at discretized time points, length of n.r.s. and der. allelic freq. at the focal site
@@ -257,7 +257,7 @@ def infer_ARG_fea(pos_ls, geno_mtx, put_sel_var, var_pos, Ne, rho_1e8, no_ft, no
         var_idx = np.where(pos_ls == var_pos)[0][0]
         var_ppos = p[var_idx]
 
-    ts_inferred, RELATE_pval = run_RELATE(p, geno_mtx, Ne, var_ppos, rho_1e8)
+    ts_inferred, RELATE_pval = run_RELATE(p, geno_mtx, Ne, var_ppos, rho_1e8, mu_string)
     if ts_inferred is None:
         return None, None, None
 

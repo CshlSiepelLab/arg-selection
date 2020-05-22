@@ -6,6 +6,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../..")) # directory of
 import numpy as np
 import dendropy
 import tskit
+import tszip
 
 import utils
 
@@ -17,9 +18,10 @@ K = len(discreT)
 W = len(win_l)
 
 helpMsg = '''
-        usage: $./ts2feature.py <`n`/`s`> <no_sims/meta_file_path> <thr> <tot_thr> <in_pref> <`tru`/`inf`> <outPref>
+        usage: $./ts2feature.py <`n`/`s`> <no_sims/meta_file_path> <thr> <tot_thr> <in_pref> <tree_type> <outPref>
         meta_file is .npz file
-        <in_pref> should be the complete prefix, including directory and file name prefix 
+        <in_pref> should be the complete prefix, including directory and file name prefix
+        <tree_type> example: `tru.trees`, `inf.trees` or `inf.trees.tsz`
         (e.g. SLiM_trial_neu_ts/SLiM_trial_neu_ts)
 '''
 
@@ -65,10 +67,14 @@ def main(args):
     for r_idx in range(a_idx, b_idx):
         if mode == 'n':
             ID = r_idx + 1 # convert 0-based index to 1-based index
-            ts_path = inPref+"_"+str(ID)+"_"+tree_type+".trees"
+            ts_path = inPref+"_"+str(ID)+"_"+tree_type
             if not os.path.isfile(ts_path): continue
 
-            ts_eg = tskit.load(ts_path)
+            if tree_type[-3:] == "tsz":
+                ts_eg = tszip.decompress(ts_path)
+            else:
+                ts_eg = tskit.load(ts_path)
+
             GTM = ts_eg.genotype_matrix()
             var_pos = utils.get_site_ppos(ts_eg)
 
@@ -81,9 +87,13 @@ def main(args):
             
         elif mode == 's':
             ID = idx_ls[r_idx] # retrieve 1-based index from metadata
-            ts_path = inPref+"_"+str(ID)+"_"+tree_type+".trees"
+            ts_path = inPref+"_"+str(ID)+"_"+tree_type
 
-            ts_eg = tskit.load(ts_path)
+            if tree_type[-3:] == "tsz":
+                ts_eg = tszip.decompress(ts_path)
+            else:
+                ts_eg = tskit.load(ts_path)
+
             GTM = ts_eg.genotype_matrix()
             var_pos = utils.get_site_ppos(ts_eg)
 

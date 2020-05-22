@@ -123,7 +123,7 @@ def main(args):
             #     caf_ls.append(meta_data[r_idx][2])
 
             outFP = parent_dir+"/"+outPref+"/"+outPref+"_"+str(ID)
-            if os.path.isfile(outFP+"_tru.trees") and os.path.isfile(outFP+"_inf.trees.tsz"): continue
+            if os.path.isfile(outFP+"_tru.trees") and os.path.isfile(outFP+"_inf.trees"): continue
 
             print("Input:", sim_path, flush=True)
             ts_samp = pyslim.load(sim_path)
@@ -131,8 +131,8 @@ def main(args):
             ts_inf = sim2ts(ts_tru, mu, rho_cMpMb, N0)
 
             ts_tru.dump(outFP+"_tru.trees")
-            #ts_inf.dump(outFP+"_inf.trees")
-            tszip.compress(ts_inf, outFP+"_inf.trees.tsz")
+            ts_inf.dump(outFP+"_inf.trees")
+            #tszip.compress(ts_inf, outFP+"_inf.trees.tsz")
             print(ID, "SUCCESS", file=log_f, flush=True)
 
     # if mode == 's': np.savez_compressed(parent_dir+"/"+outPref+"/"+outPref+"_meta_"+str(thr), 
