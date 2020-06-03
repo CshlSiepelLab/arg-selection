@@ -32,12 +32,15 @@ def main(args):
     for thr in range(no_threads):
         t = thr + base
         Path = handle+'/'+handle+'_'+tag+'_inf_fea_'+str(t)+'.pickle'
-        with open(Path, 'rb') as f:
-            lin, stat, relate = pickle.load(f)
-            print(Path+":", len(lin), len(stat), len(relate))
-            lin_ls += lin
-            stat_ls += stat
-            relate_ls += relate
+        if os.path.isfile(Path):
+            with open(Path, 'rb') as f:
+                lin, stat, relate = pickle.load(f)
+                print(Path+":", len(lin), len(stat), len(relate))
+                lin_ls += lin
+                stat_ls += stat
+                relate_ls += relate
+        else:
+            print(Path, ": file does not exist, SKIPPING")
     
     print("Total:", len(lin_ls), len(stat_ls), len(relate_ls))
     print(lin_ls[np.random.randint(len(lin_ls))].shape,

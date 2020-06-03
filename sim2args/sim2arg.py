@@ -36,12 +36,13 @@ def main(args):
     tag = args[5]
 
     Ne = int(args[3])
-    Nex2 = str(2*Ne)
+    Nex2 = str(2*Ne) # commented out when Ne is part of pkl df
     #rho = float(args[4]) # deprecated
 
     pkl_path = handle+'/'+handle+'_pgv_'+thread+'.pkl'
 
     with open(pkl_path, 'rb') as f:  # Python 3: open(..., 'rb')
+        #list_pos, list_geno, list_variant, list_var_pos, list_mu, list_rho, list_Ne, iHS_df = pickle.load(f)
         list_pos, list_geno, list_variant, list_var_pos, list_mu, list_rho, iHS_df = pickle.load(f)
 
     lin_ls = []
@@ -58,6 +59,8 @@ def main(args):
         for r_idx in range(len(list_pos)):
             #norm_iHS = iHS_df[iHS_idx==r_idx, 1:3]
             norm_iHS = None
+            # Ne = list_Ne[r_idx]
+            # Nex2 = str(2*Ne)
             mu = "{:.2e}".format(list_mu[r_idx]/(4*Ne*1e5)) # convert to string
             rho = list_rho[r_idx]/(4*Ne*1e5)*1e8 # in 1e8 unit
             lin, stat, relate_p = fea.infer_ARG_fea(list_pos[r_idx], list_geno[r_idx], list_variant[r_idx], list_var_pos[r_idx], Nex2, mu, rho, no_st, norm_iHS)

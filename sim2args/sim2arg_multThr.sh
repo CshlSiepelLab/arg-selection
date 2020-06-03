@@ -22,7 +22,7 @@ HANDLE=$2
 TAG=$3 # some unique identifier
 #RECOMB=$4 # recombination rate (in 1e-8 unit)
 
-NE=188088
+NE=188088 # dummy NE when Ne is part of the pkl df
 FLANKINGTR=2
 
 # usage: $./sim2arg.py <no_st> <handle> <Ne> <thread #, 1-based> <TAG>

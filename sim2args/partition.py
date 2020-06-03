@@ -27,7 +27,7 @@ def main(args):
         # pickle fmt: list_sel_coef(0, ls), list_freq(1, ls), list_variant(2, nparr), 
         # trees_of_interest(3, ls), list_geno(4, ls), list_pos(5, ls), list_variant_pos(6, ls), length_ARG(7, ls)
     with open(path+'_'+str(partI)+'.pkl', 'rb') as f:
-    	_, _, list_variant, _, list_geno, list_pos, list_variant_pos, _, list_mu, list_rho = pickle.load(f) # sample vary in mu & rho
+    	_, _, list_variant, _, list_geno, list_pos, list_variant_pos, _, list_mu, list_rho, _ = pickle.load(f) # sample vary in mu & rho
 
     # Partition
     no_sims = len(list_pos)
@@ -47,6 +47,7 @@ def main(args):
         glob_thr = partI*no_partO+thread
         print("%%", a_idx, b_idx, "to global thread", glob_thr, flush=True)
         with open(pkl_pref+'/'+pkl_pref+'_pgv_'+str(glob_thr)+'.pkl', 'wb') as f:
+            #pickle.dump((list_pos[a_idx:b_idx], list_geno[a_idx:b_idx], list_variant[a_idx:b_idx], list_variant_pos[a_idx:b_idx], list_mu[a_idx:b_idx], list_rho[a_idx:b_idx], list_Ne[a_idx:b_idx], iHS_sub), f, pickle.HIGHEST_PROTOCOL)
             pickle.dump((list_pos[a_idx:b_idx], list_geno[a_idx:b_idx], list_variant[a_idx:b_idx], list_variant_pos[a_idx:b_idx], list_mu[a_idx:b_idx], list_rho[a_idx:b_idx], iHS_sub), f, pickle.HIGHEST_PROTOCOL)
 
     return 0

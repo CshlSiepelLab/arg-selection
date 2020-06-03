@@ -10,15 +10,16 @@ import tskit
 
 RELATE_PATH = '/sonas-hs/siepel/hpc_norepl/home/mo/relate_v1.0.17_x86_64_static/'
 #RELATE_PATH = '~/relate_v1.0.16_MacOSX/'
-time_file_path = os.path.dirname(os.path.abspath(__file__))+'/sim2args/time.txt'
 ii32MAX = np.iinfo(np.int32).max
 
+time_file_path = os.path.dirname(os.path.abspath(__file__))+'/sim2args/time.txt'
 discretT = np.loadtxt(time_file_path)
 discretT = discretT.astype(int)
 K = len(discretT)
+
 # delta= 0.001
 # tmax = 20000
-# K = 1000
+# K = 100
 # discretT = []
 # for i in range(2,K+2):
 #     discretT.append((np.exp(i/(K-1)*np.log(1+delta*tmax))-1)/delta)

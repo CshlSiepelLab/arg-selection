@@ -20,15 +20,15 @@ def main(args):
 	noThr = int(args[6])
 	TAG = args[7]
 
-	os.mkdir("discoal_"+TAG)
+	#os.mkdir("discoal_"+TAG)
 
 	simID_0b = 0
 
 	for thr in range(1, noThr+1):
-		with open("discoal_"+TAG+"/"+TAG+"_"+str(thr)+"_id_sc_af.txt", "w") as outF:
+		with open("discoal_"+TAG+"_"+str(thr)+"_id_sc_af.txt", "w") as outF:
 			for sim in range(replPerThr):
 
-				ID_sc_af = [str(simID_0b), str(round(random.uniform(minSC,maxSC), 5)), str(round(random.uniform(minAF,maxAF), 5))]
+				ID_sc_af = [str(simID_0b), str(round(random.uniform(minSC,maxSC), 4)), str(round(random.uniform(minAF,maxAF), 2))]
 				outF.write("\t".join(ID_sc_af)+"\n")
 				simID_0b += 1
 
