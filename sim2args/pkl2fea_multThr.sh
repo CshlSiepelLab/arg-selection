@@ -1,11 +1,14 @@
 #!/bin/bash
-#$ -N sim2arg_patch
+#$ -N pkl2fea
 #$ -S /bin/bash
 #$ -cwd
-#$ -j y
-#$ -l m_mem_free=48G
+#$ -o $JOB_ID_$TASK_ID.o
+#$ -e $JOB_ID_$TASK_ID.e
+#$ -l m_mem_free=16G
 
-# -pe threads 32
+## These should be passed in while submitting the job
+# -t 1-60
+# -tc 30
 
 echo "_START_$(date)"
 
@@ -17,14 +20,10 @@ GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
 ZEROBASE=$1 # Flag indicating if threads are zero-based (1- zero base; 0- NOT zero base)
 HANDLE=$2
 TAG=$3 # some unique identifier
-RECOMB=$4 # recombination rate (in 1e-8 unit)
-THREAD=$5
 
-NE=188088
-FLANKINGTR=2
+#FLANKINGTR=2 <== this is part of the .py code now
 
-echo Patching ${HANDLE}_${TAG}_${THREAD}
-${GITPATH}/arg-selection/sim2args/sim2arg.py $FLANKINGTR $HANDLE $NE $RECOMB $((THREAD-ZEROBASE)) $TAG
+${GITPATH}/arg-selection/sim2args/pkl2fea.py $HANDLE $((SGE_TASK_ID-ZEROBASE)) $TAG
 echo "_EXITSTAT_$?"
 
 echo "_END_$(date)"

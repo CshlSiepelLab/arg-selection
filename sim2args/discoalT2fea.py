@@ -23,7 +23,7 @@ helpMsg = '''
 '''
 
 ## Hyper-parameters ##
-discreT = utils.discretizeT(0.01, 2e4, 100)
+discreT = utils.discretizeT(0.005, 2e4, 100, 2*1e4)
 K = len(discreT) # number of time points for feature extraction
 no_ft = 2 # number of flanking windows on each side for fea. extr.
 
@@ -83,10 +83,10 @@ def process_discoalT(discoal_file, cat):
 
     elif cat == '-s':
         foc_var_pos = 0.5
-        foc_var_gt = gtm[var_pos == 0.5]
+        foc_var_gt = gtm[var_pos == 0.5].flatten()
 
     intvl_end = np.cumsum(intvl_ls)
-    intvl_df = np.stack((np.concatenate((0, intvl_end[:-1])), intvl_end), axis=-1)
+    intvl_df = np.stack((np.concatenate(([0], intvl_end[:-1])), intvl_end), axis=-1)
     # Feature extraction
     feaMtx = utils.ARG2feature(intvl_df, nwk_ls, int(foc_var_pos*1e5), foc_var_gt, no_ft, discreT, 0)
     
@@ -117,7 +117,7 @@ def main(args):
         discoalF_path = 'discoal_'+handle+'/discoal_'+handle+'_'+str(samp)+'.discoal'
         #if os.stat(discoalF_path).st_size == 0: continue
         SC, CAF, feaMtx = process_discoalT(discoalF_path, mode)
-
+        print(samp, "_Done_", flush=True)
         SC_arr[samp-a_idx] = SC
         CAF_arr[samp-a_idx] = CAF
 

@@ -16,13 +16,15 @@ module purge
 module load Anaconda3/5.3.0
 
 GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
+#EXEC='discoal2fea.py'
+EXEC='discoalT2fea.py'
 
 MODE=$1 # "-n" or "-s"
 HANDLE=$2 # e.g. "pw_32_swp"
 NOREPL=$3
 NOPART=$4
 
-${GITPATH}/arg-selection/sim2args/discoal2fea.py $MODE $HANDLE $NOREPL $NOPART $((SGE_TASK_ID-1))
+${GITPATH}/arg-selection/sim2args/${EXEC} $MODE $HANDLE $NOREPL $NOPART $((SGE_TASK_ID-1))
 echo "_EXITSTAT_$?"
 
 echo "_END_$(date)"

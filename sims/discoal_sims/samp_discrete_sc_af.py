@@ -13,8 +13,8 @@ def main(args):
 
 	## Hard-coded ##
 	SC_range = [0.001, 0.0025, 0.005, 0.0075, 0.01]
-	minAF = 0.01
-	maxAF = 0.99
+	minAF = 0.1
+	maxAF = 0.95
 
 	replPerThr = int(args[1])
 	noThr = int(args[2])

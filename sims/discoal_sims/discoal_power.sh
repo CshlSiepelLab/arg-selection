@@ -20,9 +20,9 @@ echo "_START_$(date)"
 DISCOAL_PATH='/sonas-hs/siepel/hpc_norepl/home/mo/discoal-master'
 
 META=$1
+TAG=$META
 NOCHR=$2
-TAG=$3
-COND=$4 # ("swp" or "neu")
+COND=$3 # ("swp" or "neu")
 
 Ne=10000 # constant population size (10000)
 pos=0.5 #beneficial mutation positions (0-1)
