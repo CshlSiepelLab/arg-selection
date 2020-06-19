@@ -8,7 +8,7 @@ import msprime, pyslim
 import numpy as np
 import tszip
 
-from feature_util import run_RELATE
+from RELATE_util import run_RELATE
 
 helpMsg = '''
         usage: $./slimSims2ts.py <.param file> <scale> <max_no_sims> <thr> <tot_thr> <inPref> <outPref>
@@ -115,7 +115,9 @@ def main(args):
             #     ID = int(meta_data[r_idx][3].split(b'_')[-1]) # retrieve 1-based index from meta file
             #     sim_path = parent_dir+"/"+meta_data[r_idx][3].decode()+"_samp.trees"
 
-            if not os.path.isfile(sim_path): continue
+            if not os.path.isfile(sim_path):
+                print(ID, "SKIPPED", file=log_f, flush=True)
+                continue
             # if mode == 's':
             #     idx_ls.append(ID)
             #     sc_ls.append(meta_data[r_idx][0])

@@ -4,7 +4,7 @@
 #$ -cwd
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
-#$ -l m_mem_free=8G
+#$ -l m_mem_free=3G
 
 ## Specify at submission
 # -t 1-200
@@ -22,12 +22,12 @@ GITPATH="/sonas-hs/siepel/hpc_norepl/home/mo/arg-selection"
 MODE=$1 # <`n`/`s`>
 META=$2 # <no_sims/meta_file_path>
 
-THR=$SGE_TASK_ID
-TOTTHR=200
-
 INPREF=$3
 TTYPE=$4 # example: `tru.trees`, `inf.trees` or `inf.trees.tsz`
 OUTPREF=$5
+
+THR=$SGE_TASK_ID
+TOTTHR=$6
 
 ### FOR PATCHING PURPOSES ###
 

@@ -109,8 +109,8 @@ def main(args):
                 relate_ls[r_idx] = relate_p
 
     np.savez_compressed(handle+'/'+handle+'_'+tag+'_inf_fea_'+thread, SC=ls_sc, CAF=ls_AF, fea_Mtx=lin_df, relateP=relate_ls, SUC=success)
-    print("Done - SC:CAF:fea_Mtx:relateP:SUC")
-    print(len(ls_sc), len(ls_AF), lin_df.shape, relate_ls.shape, success.shape, np.sum(success))
+    print("npz fmt - SC:CAF:fea_Mtx:relateP:SUC")
+    print(f"Done_{np.sum(success)}/{success.shape}:", len(ls_sc), len(ls_AF), lin_df.shape, relate_ls.shape)
 
     os.rmdir(wd)
 

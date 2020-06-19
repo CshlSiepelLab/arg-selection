@@ -18,7 +18,7 @@ def main(args):
     outPref = args[2]
 
     meta_data = np.genfromtxt(metaF, usecols=(1, 2, 3, 4), dtype=None)
-    # e.g. `%% 0.100992 2347 0.520421 SLiM_trial_swp/SLiM_trial_swp_4501`
+    # e.g. `%% 0.100992 2347 0.520421 SLiM_trial_swp/SLiM_trial_swp_4501_temp` <= artifact of "temp"
     no_sims = meta_data.shape[0]
 
     idx_ls = []
@@ -28,8 +28,8 @@ def main(args):
 
     cnt = 0
     for r_idx in range(no_sims):
-        ID = int(meta_data[r_idx][3].split(b'_')[-1]) # retrieve 1-based index from meta file
-        sim_path = meta_data[r_idx][3].decode()+"_samp.trees"
+        ID = int(meta_data[r_idx][3].split(b'_')[-2]) # retrieve 1-based index from meta file
+        sim_path = meta_data[r_idx][3].decode()[:-4]+"samp.trees"
 
         if not os.path.isfile(sim_path): continue
         idx_ls.append(ID)

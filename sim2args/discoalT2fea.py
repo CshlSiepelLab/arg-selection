@@ -124,6 +124,7 @@ def main(args):
         feaMtx_arr[samp-a_idx, :, :] = feaMtx
 
     np.savez_compressed("discoal_"+handle+"/discoal_"+handle+"_tru_fea_"+str(thr), SC=SC_arr, CAF=CAF_arr, fea_Mtx=feaMtx_arr)
+    print("npz fmt - SC:CAF:fea_Mtx")
     print("Done:", SC_arr.shape, CAF_arr.shape, feaMtx_arr.shape)
 
 sys.exit(main(sys.argv))

@@ -4,7 +4,7 @@
 #$ -cwd
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
-#$ -l m_mem_free=64G
+#$ -l m_mem_free=23G
 
 # -t 1-50
 # -tc 50

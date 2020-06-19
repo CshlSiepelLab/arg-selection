@@ -4,7 +4,7 @@
 #$ -cwd
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
-#$ -l m_mem_free=8G
+#$ -l m_mem_free=4G
 
 ## Specify with qsub
 # -t 1-50

@@ -16,8 +16,8 @@ module purge
 module load Anaconda3/5.3.0
 
 GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
-#EXEC='discoal2fea.py'
-EXEC='discoalT2fea.py'
+EXEC='discoal2fea.py' # inferred pipeline
+#EXEC='discoalT2fea.py' # true trees from discoal
 
 MODE=$1 # "-n" or "-s"
 HANDLE=$2 # e.g. "pw_32_swp"

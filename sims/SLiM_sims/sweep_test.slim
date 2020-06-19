@@ -34,8 +34,10 @@ initialize() {
 	
 	defineConstant("selcoef", SC);
 	// defineConstant("selcoef", runif(1, sc_min, sc_max)); // defined as a parameter to the script
-	mutgen_early = max(2475-500*exp(-6*(selcoef-0.1)), 2460-180*exp(-7*(selcoef-0.1)));
-	mutgen_late = min(2485-85*exp(-6.8*(selcoef-0.1)), 2480.0);
+//	mutgen_early = max(2475-500*exp(-6*(selcoef-0.1)), 2460-180*exp(-7*(selcoef-0.1)));
+//	mutgen_late = min(2485-85*exp(-6.8*(selcoef-0.1)), 2480.0);
+	mutgen_early = max(2500 - 30/(selcoef^0.88), 101.0);
+	mutgen_late = 2500 - 18/(selcoef^0.78);
 	defineConstant("mutgen", rdunif(1, asInteger(mutgen_early), asInteger(mutgen_late)));
 	
 	initializeTreeSeq();
