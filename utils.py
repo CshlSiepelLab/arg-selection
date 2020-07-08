@@ -4,6 +4,7 @@ import numpy as np
 #import pandas as pd
 import dendropy
 import tskit
+import allel
 
 def get_site_ppos(ts):
     var_ppos_ls = []
@@ -178,7 +179,17 @@ def ts2feature(ts, vOI_pos, vOI_gt, ws_offset, we_offset, time_pts):
         seg_size.append(intvl)
         seg_fea = np.concatenate((seg_fea, np.array([fea])))
 
-def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC):
+def calc_H1(gt_mtx):
+
+    #pos = np.around(pos * 100000) # convert position to coordinate in 100kb region
+    hArr = allel.HaplotypeArray(gt_mtx)
+    acArr = hArr.count_alleles() 
+
+    H1, H12, H123, H2H1 = allel.garud_h(hArr)
+
+    return H1
+
+def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC, time_pts):
     '''
     ## Feature extraction for empirical data ##
     ppos_ls: list of physical positions of the variants
@@ -214,7 +225,7 @@ def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC):
         if np.sum(gt) < minDAC: continue
         
         DAF = np.mean(gt)
-        c_fea = xtract_fea(dp_tr_ls[no_ft], gt, 1)
+        c_fea = cnt_anc_der_lin(dp_tr_ls[no_ft], gt, time_pts, mix=False, base=1)
 
         lin_mtx = np.vstack((flk_fea_ls[:no_ft, :], c_fea, flk_fea_ls[-no_ft:, :])) # C = np.vstack((Canc, Cder))
         stat_mtx = np.vstack((stat_cache[:no_ft+1, :], stat_cache[no_ft:, :]))

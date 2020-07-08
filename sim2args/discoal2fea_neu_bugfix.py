@@ -12,16 +12,8 @@ import utils
 helpMsg = '''
     usage: $./discoal2fea.py <handle> <thr> <no_pkl> <no_thr>
 
-    Parse all discoal_pkl/discoal_<handle>_*.pkl files
-    Run RELATE and extract features
-    Outputs
-            discoal_inf_fea/discoal_<handle>_inf_fea_*.npz
-
-                SC_arr, SAF_arr, CAF_arr, onset_arr, fea_Mtx_df
-
-    <thr>: Current thread #
-    -s for sweep simulations
-    -n for neutral simulations
+    THIS IS A TEMPORARY BUG FIX FOR NEUTRAL SITE SAMPLING!
+    RUN neutral simulations through this pipeline ONLY!
 '''
 
 # MACRO: simulated region [0, 1e5)
@@ -91,8 +83,12 @@ def main(args):
 
     with cd(wd):
         for samp in range(a_idx, b_idx):
-            #if os.stat(discoalF_path).st_size == 0: continue
-            feaMtx = inf_fea(foc_var_pos_arr[samp], var_pos_ls[samp], gtm_ls[samp])
+            ## TEMP BUG FIX: re-select focal variant to lie closer to center
+            var_samp_idx = utils.samp_var(gtm_ls[samp], var_pos_ls[samp], 0.5, 0.95, 0.46, 0.54)
+            foc_var_pos = var_pos_ls[samp][var_samp_idx]
+            CAF_arr[samp] = np.mean(gtm_ls[samp][var_samp_idx]) 
+
+            feaMtx = inf_fea(foc_var_pos, var_pos_ls[samp], gtm_ls[samp])
             
             if feaMtx is None:
                 success[samp-a_idx] = 0

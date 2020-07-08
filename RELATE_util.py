@@ -7,7 +7,7 @@ import numpy as np
 import allel
 import tskit
 
-RELATE_PATH = '/sonas-hs/siepel/hpc_norepl/home/mo/relate_v1.0.17_x86_64_static/'
+RELATE_PATH = '/grid/siepel/home_norepl/mo/relate_v1.0.17_x86_64_static/'
 #RELATE_PATH = '~/relate_v1.0.16_MacOSX/'
 ii32MAX = np.iinfo(np.int32).max
 
@@ -163,13 +163,3 @@ def RELATE_sel_inf(locOI, mut_rate):
         return 0 # RELATE cannot test for selection at site where the mutation cannot be mapped to a unique branch
     else:
         return sel_pval[-1]
-
-def calc_H1(gt_mtx):
-
-    #pos = np.around(pos * 100000) # convert position to coordinate in 100kb region
-    hArr = allel.HaplotypeArray(gt_mtx)
-    acArr = hArr.count_alleles() 
-
-    H1, H12, H123, H2H1 = allel.garud_h(hArr)
-
-    return H1

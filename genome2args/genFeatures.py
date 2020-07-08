@@ -9,11 +9,17 @@ import pickle
 import gzip
 import numpy as np
 
-import feature_util as fea
+import utils
 
 helpMsg = '''
         usage: $./genFeatures.py <.trees PATH> <out prefix> <no_ft> <min_DAF>
 '''
+
+time_file_path =  os.path.join(os.path.dirname(__file__), "..", "time.txt")
+discretT = np.loadtxt(time_file_path)
+discretT = discretT.astype(int)
+K = len(discretT)
+#no_ft = 2 # of flanking gene trees to include on EACH side for feature extraction
 
 def main(args):
     if len(args) != 5:    #4 arguments
@@ -30,7 +36,7 @@ def main(args):
     # feature matrices for variant sites
     pos_ls = []
     lin_ls = []
-    stat_ls = []
+    #stat_ls = []
     tree_ls = [] #nwk strings of the trees at each site
 
     # features of trees
@@ -42,7 +48,7 @@ def main(args):
 
     intervals = np.empty((0, 2), int) # of row = 2*no_ft + 1
     dp_tr_ls = []  # list of dendropy objects len(dp_tr_ls) = 2*no_ft + 1
-    flk_fea_ls = np.empty((0, fea.K)) # flk_fea_ls.shape = (2*no_ft + 1, K)
+    flk_fea_ls = np.empty((0, K)) # flk_fea_ls.shape = (2*no_ft + 1, K)
     #lHaD_ls = [] # np.array([len, H1, avgDAF])
     EOInvl = 0 # end of current interval
 
@@ -58,10 +64,10 @@ def main(args):
 
         if len(dp_tr_ls) == 2*no_ft+1:
             # resolve the middle segment of the previous window
-            pos_vs, lin_vs, stat_vs, tree_vs = fea.vars_ARG_fea(ppos_ls, gt_mtx, intervals, dp_tr_ls, flk_fea_ls, no_ft, min_DAC)
+            pos_vs, lin_vs, _, tree_vs = utils.vars_ARG_fea(ppos_ls, gt_mtx, intervals, dp_tr_ls, flk_fea_ls, no_ft, min_DAC, discretT)
             pos_ls += pos_vs
             lin_ls += lin_vs
-            stat_ls += stat_vs
+            #stat_ls += stat_vs
             tree_ls += tree_vs
 
             # Remove leftmost tree from cache
@@ -84,8 +90,10 @@ def main(args):
         intervals = np.vstack((intervals, [left, right]))
 
         st = dendropy.Tree.get(data=tree.newick(precision=1), schema="newick")
-        root_h = st.max_distance_from_root()
-        T = root_h - fea.discretT
+        lfrt_dist = st.calc_node_root_distances()
+        lfrt_dist = np.floor(lfrt_dist) # round down!
+        root_h = np.min(lfrt_dist)
+        T = root_h - discretT
         st_fea = np.array([st.num_lineages_at(t) for t in T])
 
         dp_tr_ls.append(st)
@@ -94,7 +102,9 @@ def main(args):
         EOInvl = right
 
     with open(out_pref+'.pickle', 'wb') as f:
-        pickle.dump((pos_ls, lin_ls, stat_ls, tree_ls), f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump((pos_ls, lin_ls, tree_ls), f, pickle.HIGHEST_PROTOCOL)
+
+    print(len(pos_ls), len(lin_ls), len(tree_ls))
     
     return 0
 

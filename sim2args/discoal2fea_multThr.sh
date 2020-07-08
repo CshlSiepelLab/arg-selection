@@ -4,7 +4,7 @@
 #$ -cwd
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
-#$ -l m_mem_free=8G
+#$ -l m_mem_free=6G
 
 ## These should be passed in while submitting the job
 # -t 1-60
@@ -12,19 +12,19 @@
 
 echo "_START_$(date)"
 
-module purge
-module load Anaconda3/5.3.0
+#module purge
+#module load Anaconda3/5.3.0
 
-GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
+GITPATH='/grid/siepel/home_norepl/mo'
 EXEC='discoal2fea.py' # inferred pipeline
+#EXEC='discoal2fea_neu_bugfix.py' # fixing bug in neutral sim site selection
 #EXEC='discoalT2fea.py' # true trees from discoal
 
-MODE=$1 # "-n" or "-s"
-HANDLE=$2 # e.g. "pw_32_swp"
-NOREPL=$3
-NOPART=$4
+HANDLE=$1 # e.g. "soft_lu_110_swp"
+NO_PKL=$2
+NO_THR=$SGE_TASK_LAST
 
-${GITPATH}/arg-selection/sim2args/${EXEC} $MODE $HANDLE $NOREPL $NOPART $((SGE_TASK_ID-1))
+${GITPATH}/arg-selection/sim2args/${EXEC} $HANDLE $SGE_TASK_ID $NO_PKL $NO_THR
 echo "_EXITSTAT_$?"
 
 echo "_END_$(date)"

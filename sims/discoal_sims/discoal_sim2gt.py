@@ -22,8 +22,8 @@ helpMsg = '''
 '''
 
 ## MACRO ##
-DISCOAL_PATH = '/sonas-hs/siepel/hpc_norepl/home/mo/discoal-master'
-MS_CMD = 'maiz_dem.txt'
+DISCOAL_PATH = '/grid/siepel/home_norepl/mo/discoal-master'
+MS_CMD = '/grid/siepel/home_norepl/mo/arg-selection/sims/maiz_dem.txt'
 
 ## Simulation parameters ##
 #Ne = 10000 # extract from ms command
@@ -54,12 +54,15 @@ def parse_hdswp_cmd(cmd_line):
     N_curr = int(args[args.index('-N') + 1])
     alpha = float(args[args.index('-a') + 1])
     CAF = float(args[args.index('-c') + 1])
-    SAF = float(args[args.index('-f') + 1])
+    if '-f' in args:
+        SAF = float(args[args.index('-f') + 1])
+    else:
+        SAF = 0
     selcoef = alpha/(2*N_curr)
     
     return selcoef, SAF, CAF
 
-def discoal2gt(discoal_file, cat, c_low, c_high):
+def discoal2gt(discoal_file, cat, c_low, c_high, soft_flag):
 
     with open(discoal_file, "r") as discoalF:
         if cat == 'swp':
@@ -85,8 +88,11 @@ def discoal2gt(discoal_file, cat, c_low, c_high):
                 continue
             if seek_onset:
                 gbp_der_anc = line.strip().split()
-                if len(gbp_der_anc) == 3 and float(gbp_der_anc[1]) < SAF: # 1st time point going backward
+                if len(gbp_der_anc) == 3:
                     onset_gen = float(gbp_der_anc[0]) # in coalc. unit
+                    if soft_flag and float(gbp_der_anc[1]) < SAF: # 1st time point going backward
+                        seek_onset = False
+                elif onset_gen != -1:
                     seek_onset = False
                 continue
             if read_GT:
@@ -94,7 +100,7 @@ def discoal2gt(discoal_file, cat, c_low, c_high):
 
     gtm = np.transpose(gtm)
     if cat == 'neu':
-        samp_idx = utils.samp_var(gtm, var_pos, c_low, c_high, 0.4, 0.6)
+        samp_idx = utils.samp_var(gtm, var_pos, c_low, c_high, 0.46, 0.54) # IMPORTANT: match fea extraction window!
         foc_var_pos = var_pos[samp_idx]
         #foc_var_gt = gtm[samp_idx]
         CAF = np.mean(gtm[samp_idx])
@@ -122,14 +128,21 @@ def main(args):
 
     with open(MS_CMD, "r") as inF:
         rho, Ne, discoal_dem = parse_msCmd(inF.readline().strip().split(), mu)
+    print(f"rho:{rho}, Ne:{Ne}")
 
     theta = 4*Ne*mu*length
     R = 4*Ne*rho*length
     
     print(f"discoal_{handle}_{no_chrs}_{mode}_{thr}: {no_sims} sims", flush=True)
 
-    SC_arr = np.exp(np.random.uniform(np.log(s_low), np.log(s_high), size=no_sims)) # selection coefficient
-    SAF_arr = np.random.uniform(f_low, f_high, size=no_sims) # Starting AF
+    #SC_arr = np.exp(np.random.uniform(np.log(s_low), np.log(s_high), size=no_sims)) # selection coefficient
+    SC_arr = np.random.uniform(1, 10, size=no_sims) * np.power(10.0, np.random.randint(int(np.log10(s_low)), int(np.log10(s_high)), size=no_sims))
+    if f_low == 0 and f_high == 0:
+        SAF_arr = np.zeros(no_sims)
+        soft = False
+    else:
+        SAF_arr = np.random.uniform(f_low, f_high, size=no_sims) # Starting AF
+        soft = True
     CAF_arr = np.random.uniform(c_low, c_high, size=no_sims) # Current AF
     onset_arr = np.empty(no_sims)
     foc_var_pos_arr = np.empty(no_sims)
@@ -142,16 +155,17 @@ def main(args):
     for samp in range(no_sims):
         #if os.stat(discoalF_path).st_size == 0: continue
         temp_discoalF = f"discoal_temp/discoal_{handle}_{no_chrs}_{mode}_{thr}_{samp}.discoal"
+        discoal_cmd = [f"{DISCOAL_PATH}/discoal", str(no_chrs), "1", str(length),
+            "-t", str(theta), "-r", str(R)] #, "-T"]
+
         if mode == 'swp':
             sel = 2*Ne*SC_arr[samp]
-            discoal_cmd = [f"{DISCOAL_PATH}/discoal", str(no_chrs), "1", str(length),
-            "-t", str(theta), "-r", str(R),
-            "-c", str(CAF_arr[samp]), "-f", str(SAF_arr[samp]), "-ws", "0", "-a", str(sel),
-            "-N", str(Ne), "-i", str(SIGMA), "-x", str(pos), "-T"] + discoal_dem
+            discoal_cmd += ["-c", str(CAF_arr[samp]), "-ws", "0", "-a", str(sel),
+            "-N", str(Ne), "-i", str(SIGMA), "-x", str(pos)]
+            if soft:
+                discoal_cmd += ["-f", str(SAF_arr[samp])]
 
-        elif mode == 'neu':
-            discoal_cmd = [f"{DISCOAL_PATH}/discoal", str(no_chrs), "1", str(length),
-            "-t", str(theta), "-r", str(R), "-T"] + discoal_dem
+        discoal_cmd += discoal_dem
 
         loop_cnt = 0
         while True:
@@ -161,7 +175,7 @@ def main(args):
                 discoal_proc = subprocess.run(discoal_cmd, stdout=outF)
             if discoal_proc.returncode == 0: break
 
-        SC, SAF, CAF, onset_gen, foc_var_pos, var_pos, gtm = discoal2gt(temp_discoalF, mode, c_low, c_high)
+        SC, SAF, CAF, onset_gen, foc_var_pos, var_pos, gtm = discoal2gt(temp_discoalF, mode, c_low, c_high, soft)
         
         if mode == 'neu':
             SC_arr[samp] = SC
