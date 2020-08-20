@@ -19,7 +19,7 @@ helpMsg = '''
 
 ## Hyper-parameters ##
 
-time_file_path = os.path.dirname(os.path.abspath(__file__))+'/time.txt'
+time_file_path =  os.path.join(os.path.dirname(__file__), "..", "time.txt")
 discretT = np.loadtxt(time_file_path)
 discretT = discretT.astype(int)
 K = len(discretT)
@@ -88,7 +88,7 @@ def main(args):
 
     success = np.empty(tasks, dtype=int)
     lin_df = np.empty((tasks, 2*no_ft+2, K), dtype=int)
-    relate_ls = np.empty(tasks, dtype=int) # log-10 p-value for selection by RELATE
+    relate_ls = np.empty(tasks, dtype=float) # log-10 p-value for selection by RELATE
 
     wd = handle+'/'+handle+'_'+tag+'_temp_'+thread
     os.mkdir(wd, 0o755)

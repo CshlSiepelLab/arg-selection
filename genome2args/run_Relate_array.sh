@@ -7,15 +7,15 @@
 #$ -l m_mem_free=8G
 
 ## Specify at submit time, match # of line in GENELIST file
-# -t 1-13
+# -t 1-16
 
 echo "_START_$(date)"
 
-GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
-RELATE_PATH="/sonas-hs/siepel/hpc_norepl/home/mo/relate_v1.0.17_x86_64_static"
-#GENELIST=${GITPATH}/arg-selection/genome2args/pos_sel_genes.txt
+GITPATH='/grid/siepel/home_norepl/mo'
+RELATE_PATH="/grid/siepel/home_norepl/mo/relate_v1.0.17_x86_64_static"
 
-GENELIST=$1
+GENES=$1
+GENELIST=${GITPATH}/arg-selection/genome2args/${GENES}.txt
 
 GENEL=($(awk '{print $1}' $GENELIST))
 CHRL=($(awk '{print $2}' $GENELIST))

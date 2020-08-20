@@ -13,7 +13,9 @@ helpMsg = '''
             - outputs <pkl_pref>_<thread>.pkl files in respective directory
 '''
 
-CHRS=182 # number of chromosomes in simulation
+# bird - 24; CEU - 198; GBR - 182
+CHRS=24 # number of chromosomes in simulation
+
 
 def main(args):
     if len(args) != 5:    #4 arguments

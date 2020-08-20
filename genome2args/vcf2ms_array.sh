@@ -1,5 +1,5 @@
 #!/bin/bash
-#$ -N genFeatures_array
+#$ -N vcf2ms
 #$ -S /bin/bash
 #$ -cwd
 #$ -o $JOB_ID_$TASK_ID.o
@@ -7,18 +7,15 @@
 #$ -l m_mem_free=8G
 
 ## Specify at submit time, match # of line in GENELIST file
-# -t 1-16
+# -t 1-13
 
 echo "_START_$(date)"
-
-# module purge
 # module load Anaconda3/5.3.0
 
 GITPATH='/grid/siepel/home_norepl/mo'
-GENES=$1
-MINDAF=$2
 
-GENELIST=${GITPATH}/arg-selection/genome2args/${GENES}.txt
+POPFILE=$1 # used for file names
+GENELIST=$2 #
 
 GENEL=($(awk '{print $1}' $GENELIST))
 CHRL=($(awk '{print $2}' $GENELIST))
@@ -32,11 +29,10 @@ CHR=${CHRL[$IDX]}
 FROM=${FROML[$IDX]}
 TO=${TOL[$IDX]}
 
-# usage: $./genFeatures.py <.trees PATH> <out prefix> <no_ft> <min_DAF>
+echo "Converting ${GENE}_chr${CHR}_${FROM}_${TO} vcf to ms"
 
-echo Feature Extraction ${GENE}_chr${CHR}_${FROM}_${TO}
-${GITPATH}/arg-selection/genome2args/genFeatures.py ${GENE}/${GENE}_chr${CHR}_${FROM}_${TO}_wg.trees ${GENE}/${GENE}_chr${CHR}_${FROM}_${TO}.haps.meta ${GENE}/${GENE}_chr${CHR}_${FROM}_${TO}_DAF${MINDAF}_gt 2 $MINDAF
-echo "_EXITSTAT_$?"
+${GITPATH}/arg-selection/genome2args/vcf2ms.py vcfs/${POPFILE}_${GENE}_chr${CHR}_${FROM}_${TO}_gt.recode.vcf.gz ms_file/${POPFILE}_${GENE}_chr${CHR}_${FROM}_${TO}_gt $FROM
+echo "VCF2HAP_EXITSTAT_$?"
 
 echo "_END_$(date)"
 exit

@@ -4,9 +4,10 @@ import os, sys
 import subprocess
 import numpy as np
 #import pandas as pd
-import allel
+#import allel
 import tskit
 
+#RELATE_PATH = '/grid/siepel/home_norepl/mo/relate_v1.1.2_x86_64_static/'
 RELATE_PATH = '/grid/siepel/home_norepl/mo/relate_v1.0.17_x86_64_static/'
 #RELATE_PATH = '~/relate_v1.0.16_MacOSX/'
 ii32MAX = np.iinfo(np.int32).max
@@ -50,6 +51,7 @@ def run_RELATE(pp, gtm, Ne, var_ppos=-1, rho_cMpMb=1.25, mut_rate="2.5e-8"):
     relate_cmd = [RELATE_PATH+"bin/Relate", "--mode", "All",
             "-m", mut_rate,
             "-N", Ne,
+            #"--coal", "/grid/siepel/home_norepl/mo/arg-selection/GBR_discoal_dem.coal", # supply actual demography, overwrites -N
             "--haps", "temp.haps",
             "--sample", "temp.sample",
             "--map", "temp.map",
@@ -93,6 +95,7 @@ def run_RELATE(pp, gtm, Ne, var_ppos=-1, rho_cMpMb=1.25, mut_rate="2.5e-8"):
         print("Milestone: Running RELATE pipeline, try_", loop_cnt, sep='', flush=True)
         relate_cmd[-1] = str(np.random.randint(ii32MAX))
         popsize_cmd[-1] = str(np.random.randint(ii32MAX))
+        print(" ".join(relate_cmd), flush=True)
         relate_proc = subprocess.run(relate_cmd)
         if relate_proc.returncode != 0: continue
         #relate_proc.check_returncode()

@@ -12,7 +12,7 @@ import numpy as np
 import utils
 
 helpMsg = '''
-        usage: $./genFeatures.py <.trees PATH> <out prefix> <no_ft> <min_DAF>
+        usage: $./genFeatures.py <.trees PATH> <.meta PATH> <out prefix> <no_ft> <min_DAF>
 '''
 
 time_file_path =  os.path.join(os.path.dirname(__file__), "..", "time.txt")
@@ -22,18 +22,31 @@ K = len(discretT)
 #no_ft = 2 # of flanking gene trees to include on EACH side for feature extraction
 
 def main(args):
-    if len(args) != 5:    #4 arguments
+    if len(args) != 6:    #5 arguments
         return helpMsg
 
     ts_file=args[1]
-    out_pref=args[2]
-    no_ft=int(args[3])
-    min_DAF=float(args[4])
+    meta_file=args[2]
+    out_pref=args[3]
+    no_ft=int(args[4])
+    min_DAF=float(args[5])
     
     ts = tskit.load(ts_file)
-    min_DAC = round(min_DAF*len(ts.samples()))
+    # meta = np.genfromtxt(meta_file, dtype=None, encoding=None) 
+    # rs_ID | pos | code e.g. ('rs59993883', 135500045, 0)
+    meta_ID = np.loadtxt(meta_file, dtype=str, usecols=0, encoding=None)
+    meta_pos = np.loadtxt(meta_file, dtype=int, usecols=1)
+    meta_code = np.loadtxt(meta_file, dtype=int, usecols=2)
+    print(f"<> No. sites in: ts_file-{ts.num_sites}, meta_file-{meta_ID.shape[0]}; {meta_pos.shape[0]}; {meta_code.shape[0]}", flush=True)
+
+    no_haptypes = ts.num_samples
+    min_DAC = round(min_DAF*no_haptypes)
+    print(f"<> Min DAC threshold: {min_DAC}/{no_haptypes}")
     
     # feature matrices for variant sites
+    id_ls = []
+    daf_ls = []
+    gt_ls = []
     pos_ls = []
     lin_ls = []
     #stat_ls = []
@@ -44,7 +57,10 @@ def main(args):
 
     # cache
     ppos_ls = np.array([])
-    gt_mtx = np.empty((0, len(ts.samples())), int) # of row matches len(ppos_ls)
+    id_cache = np.array([])
+    #daf_cache = np.array([])
+    code_cache = np.array([])
+    gt_mtx = np.empty((0, no_haptypes), int) # of row matches len(ppos_ls)
 
     intervals = np.empty((0, 2), int) # of row = 2*no_ft + 1
     dp_tr_ls = []  # list of dendropy objects len(dp_tr_ls) = 2*no_ft + 1
@@ -59,12 +75,18 @@ def main(args):
 
         if pos < EOInvl:
             ppos_ls = np.append(ppos_ls, pos)
+            meta_idx = np.nonzero(meta_pos == pos)[0][0]
+            id_cache = np.append(id_cache, meta_ID[meta_idx])
+            code_cache = np.append(code_cache, meta_code[meta_idx])
             gt_mtx = np.vstack((gt_mtx, gt))
             continue
 
         if len(dp_tr_ls) == 2*no_ft+1:
             # resolve the middle segment of the previous window
-            pos_vs, lin_vs, _, tree_vs = utils.vars_ARG_fea(ppos_ls, gt_mtx, intervals, dp_tr_ls, flk_fea_ls, no_ft, min_DAC, discretT)
+            pos_vs, lin_vs, _, tree_vs, id_vs, daf_vs, gt_vs = utils.vars_ARG_fea(ppos_ls, id_cache, code_cache, gt_mtx, intervals, dp_tr_ls, flk_fea_ls, no_ft, min_DAC, discretT)
+            id_ls += id_vs
+            daf_ls += daf_vs
+            gt_ls += gt_vs
             pos_ls += pos_vs
             lin_ls += lin_vs
             #stat_ls += stat_vs
@@ -73,6 +95,8 @@ def main(args):
             # Remove leftmost tree from cache
             keep = (ppos_ls >= intervals[1, 0])
             ppos_ls = ppos_ls[keep]
+            id_cache = id_cache[keep]
+            code_cache = code_cache[keep]
             gt_mtx = gt_mtx[keep, :]
 
             intervals = intervals[1:, :]
@@ -85,6 +109,9 @@ def main(args):
 
         # populate cache
         ppos_ls = np.append(ppos_ls, pos)
+        meta_idx = np.nonzero(meta_pos == pos)[0][0]
+        id_cache = np.append(id_cache, meta_ID[meta_idx])
+        code_cache = np.append(code_cache, meta_code[meta_idx])
         gt_mtx = np.vstack((gt_mtx, gt))
 
         intervals = np.vstack((intervals, [left, right]))
@@ -102,9 +129,9 @@ def main(args):
         EOInvl = right
 
     with open(out_pref+'.pickle', 'wb') as f:
-        pickle.dump((pos_ls, lin_ls, tree_ls), f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump((id_ls, daf_ls, pos_ls, lin_ls, tree_ls, gt_ls), f, pickle.HIGHEST_PROTOCOL)
 
-    print(len(pos_ls), len(lin_ls), len(tree_ls))
+    print("<>", len(id_ls), len(daf_ls), len(pos_ls), len(lin_ls), len(tree_ls), len(gt_ls))
     
     return 0
 

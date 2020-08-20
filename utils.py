@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
+import os
 import numpy as np
 #import pandas as pd
 import dendropy
 import tskit
+
+os.environ["NUMEXPR_MAX_THREADS"]="272"
 import allel
 
 def get_site_ppos(ts):
@@ -189,10 +192,12 @@ def calc_H1(gt_mtx):
 
     return H1
 
-def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC, time_pts):
+def vars_ARG_fea(ppos_ls, id_ls, code_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC, time_pts):
     '''
     ## Feature extraction for empirical data ##
     ppos_ls: list of physical positions of the variants
+    id_ls: list of SNP ids for the variants
+    code_ls: list of numerical codes for the ancestral information (>0 means AA available)
     gtm: genotype matrix of the variants
     intvls: intervals of the trees
     dp_tr_ls: dendropy objects of the trees
@@ -205,6 +210,9 @@ def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC, time
     lin_vars = []
     stat_vars = []
     tree_vars = []
+    id_vars = []
+    daf_vars = []
+    gt_vars = []
 
     stat_cache = np.empty((0, 3))
 
@@ -222,7 +230,7 @@ def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC, time
 
     for var_i in np.argwhere(foc_sites).flatten(): # argwhere returns a column vector, needs to be flattened!
         gt = gtm[var_i, :]
-        if np.sum(gt) < minDAC: continue
+        if np.sum(gt) < minDAC or code_ls[var_i] < 0: continue # filter out low freq. and AA unk variants
         
         DAF = np.mean(gt)
         c_fea = cnt_anc_der_lin(dp_tr_ls[no_ft], gt, time_pts, mix=False, base=1)
@@ -235,5 +243,8 @@ def vars_ARG_fea(ppos_ls, gtm, intvls, dp_tr_ls, flk_fea_ls, no_ft, minDAC, time
         lin_vars.append(lin_mtx)
         stat_vars.append(stat_mtx)
         tree_vars.append(focT_nwk)
+        id_vars.append(id_ls[var_i])
+        daf_vars.append(DAF)
+        gt_vars.append(gt)
 
-    return pos_vars, lin_vars, stat_vars, tree_vars
+    return pos_vars, lin_vars, stat_vars, tree_vars, id_vars, daf_vars, gt_vars

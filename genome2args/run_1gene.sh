@@ -1,40 +1,25 @@
 #!/bin/bash
-#$ -N RELATE_gene
+#$ -N emp_pipeline
 #$ -S /bin/bash
 #$ -cwd
 #$ -j y
-#$ -l m_mem_free=64G
+#$ -l m_mem_free=16G
 
 echo "_START_$(date)"
 
-GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
-RELATE_PATH="/sonas-hs/siepel/hpc_norepl/home/mo/relate_v1.0.17_x86_64_static"
-GENELIST=${GITPATH}/arg-selection/genome2args/pos_sel_genes.txt
+GITPATH='/grid/siepel/home_norepl/mo'
+RELATE_PATH="/grid/siepel/home_norepl/mo/relate_v1.0.17_x86_64_static"
+#GENELIST=${GITPATH}/arg-selection/genome2args/pos_sel_genes.txt
 
-GENEL=($(awk '{print $1}' $GENELIST))
-CHRL=($(awk '{print $2}' $GENELIST))
-FROML=($(awk '{print $3}' $GENELIST))
-TOL=($(awk '{print $4}' $GENELIST))
-
-#for ((SGE_TASK_ID=1;SGE_TASK_ID<=13;SGE_TASK_ID++)); do
-GENE_ID=$1
-IDX=$((GENE_ID-1))
-GENE=${GENEL[$IDX]}
-CHR=${CHRL[$IDX]}
-FROM=${FROML[$IDX]}
-TO=${TOL[$IDX]}
+GENE=$1
+CHR=$2
+FROM=$3
+TO=$4
 
 cd $GENE
+
+### ARG INFERENCE ###
 echo Running Relate on ${GENE}_chr${CHR}_${FROM}_${TO}
-
-#../relate_v1.0.16_x86_64_static/scripts/PrepareInputFiles/PrepareInputFiles.sh \
-#	--haps ${GENE}_chr${CHR}_${FROM}_${TO}.haps \
-#	--sample ${GENE}_chr${CHR}_${FROM}_${TO}.sample \
-#	--ancestor ../ancestral_fasta/homo_sapiens_ancestor_${CHR}.fa \
-#	-o ${GENE}_chr${CHR}_${FROM}_${TO}_input
-
-#gunzip ${GENE}_chr${CHR}_${FROM}_${TO}_input.haps.gz
-#gunzip ${GENE}_chr${CHR}_${FROM}_${TO}_input.sample.gz
 
 ${RELATE_PATH}/bin/Relate \
 	--mode All \
@@ -47,7 +32,6 @@ ${RELATE_PATH}/bin/Relate \
 echo "RELATE_EXITSTAT_$?"
 
 # re-estimate branch lengths
-
 ${RELATE_PATH}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
             -i ${GENE}_chr${CHR}_${FROM}_${TO} \
             -m 2.5e-8 \
@@ -56,7 +40,7 @@ ${RELATE_PATH}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
             -o ${GENE}_chr${CHR}_${FROM}_${TO}_popsize
 echo "POPSIZE_EXITSTAT_$?"
 
-        # re-estimate branch length for ENTIRE genealogy
+# re-estimate branch length for ENTIRE genealogy
 ${RELATE_PATH}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
             -i ${GENE}_chr${CHR}_${FROM}_${TO} \
             -m 2.5e-8 \
@@ -67,12 +51,18 @@ ${RELATE_PATH}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
             -o ${GENE}_chr${CHR}_${FROM}_${TO}_wg
 echo "WG_EXITSTAT_$?"
 
-
 ${RELATE_PATH}/bin/RelateFileFormats \
 	--mode ConvertToTreeSequence \
 	-i ${GENE}_chr${CHR}_${FROM}_${TO}_wg \
 	-o ${GENE}_chr${CHR}_${FROM}_${TO}_wg
 echo "TS_CONVERSION_EXITSTAT_$?"
+
+### FEATURE EXTRACTION ###
+MINDAF=0.05
+
+echo Feature Extraction ${GENE}_chr${CHR}_${FROM}_${TO}
+${GITPATH}/arg-selection/genome2args/genFeatures.py ${GENE}_chr${CHR}_${FROM}_${TO}_wg.trees ${GENE}_chr${CHR}_${FROM}_${TO}_DAF${MINDAF} 2 $MINDAF
+echo "FEA_EXITSTAT_$?"
 
 echo "_END_$(date)"
 exit

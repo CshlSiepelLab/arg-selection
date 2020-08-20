@@ -4,7 +4,7 @@
 #$ -cwd
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
-#$ -l m_mem_free=16G
+#$ -l m_mem_free=8G
 
 ## Specify at submit time
 # -t 1-10
@@ -12,10 +12,10 @@
 
 echo "_START_$(date)"
 
-module purge
-module load Anaconda3/5.3.0
+#module purge
+#module load Anaconda3/5.3.0
 
-GITPATH='/sonas-hs/siepel/hpc_norepl/home/mo'
+GITPATH='/grid/siepel/home_norepl/mo'
 FILEPATH=$1 #path to pickle files
 PKLPREF=$2
 
