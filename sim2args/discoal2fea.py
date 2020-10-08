@@ -41,8 +41,9 @@ def cd(newdir):
     finally:
         os.chdir(prevdir)
 
-def inf_fea(put_sel_var_pos, pos_ls, geno_mtx, Nex2=str(2*1e8), mu_string="3e-8", rho_1e8=0.6975):
+def inf_fea(put_sel_var_pos, pos_ls, geno_mtx, Nex2=str(2*1e8), mu_string="3e-8", rho_1e8=0.7):
     '''Format input, run RELATE on variants of a simulated region and extract features of a region from inferred tree sequence
+    mu and rho are rounded for both teo and LR
     '''
 
     p = utils.discrete_pos(pos_ls)

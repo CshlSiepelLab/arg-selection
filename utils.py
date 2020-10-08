@@ -142,7 +142,22 @@ def ARG2feature(intervals, trees, var_ppos, vOI_gt, no_ft, time_pts, taxa):
     return lin_mtx # dim(lin_mtx)=(2*no_ft+2, K)
 
 def ts2feature(ts, vOI_pos, vOI_gt, ws_offset, we_offset, time_pts):
+    ''' wrapper '''
+
+    trees = []
+    intervals = np.empty((0,2), int)
+    for tree in ts.trees():
+        left, right = map(int, tree.interval)
+        intervals = np.vstack((intervals, [left, right]))
+        trees = np.append(trees, tree.newick(precision=5))
+
+    intervals[-1, 1] = 1e5 # force last tree to cover the rest of the region
+
+    return ARG2feature_win(intervals, trees, vOI_pos, vOI_gt, ws_offset, we_offset, time_pts)
+
+def ARG2feature_win(intvls, nwk_trees, vOI_pos, vOI_gt, ws_offset, we_offset, time_pts):
     ''' Full region window approach '''
+
     K = len(time_pts)
     W = len(ws_offset)
     region_fea = np.empty((W*3, K)) # (Canc, Cmix, Cder) for each window
@@ -153,14 +168,16 @@ def ts2feature(ts, vOI_pos, vOI_gt, ws_offset, we_offset, time_pts):
     seg_fea = np.empty((0, 3, K)) # temp storage of features of the trees in one segment/window
     seg_size = []
     
-    tcnt = 0
-    ttot = ts.num_trees
-    for tree in ts.trees():
-        tcnt += 1
-        left, right = map(int, tree.interval) # apply function int() to tree.interval, left is inclusive and right is exclusive
+    #tcnt = 0
+    ttot = len(nwk_trees) #ts.num_trees
+    #for tree in ts.trees():
+    for tcnt in range(ttot):
+        #tcnt += 1
+        tree = nwk_trees[tcnt]
+        left, right = intvls[tcnt] #map(int, tree.interval) # apply function int() to tree.interval, left is inclusive and right is exclusive
         if right <= win_start[0]: continue
-        if tcnt == ttot: right = 1e5 # coerce the last tree to cover the entire region
-        dp_tree = dendropy.Tree.get(data=tree.newick(precision=2), schema="newick")
+        #if tcnt == ttot: right = 1e5 # coerce the last tree to cover the entire region
+        dp_tree = dendropy.Tree.get(data=tree, schema="newick")
         fea = cnt_anc_der_lin(dp_tree, vOI_gt, time_pts) # shape: (3, K)
         
         while right >= win_end[win]:

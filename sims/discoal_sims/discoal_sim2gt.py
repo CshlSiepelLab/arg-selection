@@ -22,8 +22,9 @@ helpMsg = '''
 '''
 
 ## MACRO ##
+DEM = 'teo' # maiz or teo
 DISCOAL_PATH = '/grid/siepel/home_norepl/mo/discoal-master'
-MS_CMD = '/grid/siepel/home_norepl/mo/arg-selection/sims/maiz_dem.txt'
+MS_CMD = f'/grid/siepel/home_norepl/mo/arg-selection/sims/{DEM}_dem.txt'
 
 ## Simulation parameters ##
 #Ne = 10000 # extract from ms command

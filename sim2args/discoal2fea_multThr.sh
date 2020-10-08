@@ -4,7 +4,7 @@
 #$ -cwd
 #$ -o $JOB_ID_$TASK_ID.o
 #$ -e $JOB_ID_$TASK_ID.e
-#$ -l m_mem_free=6G
+#$ -l m_mem_free=8G
 
 ## These should be passed in while submitting the job
 # -t 1-60
