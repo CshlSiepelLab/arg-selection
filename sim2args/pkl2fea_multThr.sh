@@ -16,6 +16,7 @@ echo "_START_$(date)"
 # module load EBModules
 # module load Anaconda3/2019.10
 # module load R/3.6.2-foss-2019b
+# DO THIS FIRST: $ conda activate local
 
 GITPATH='/grid/siepel/home_norepl/mo'
 
