@@ -1,14 +1,14 @@
 // Sweep simulation with tree sequence recording
 // need to define the following Eidos constants:
-// `paramF`, `outPref`, `sc_min`, `sc_max`, `min_AF`, `max_AF`
+// `paramF`, `outPref`, `selcoef`, `mutgen`, `min_AF`, `max_AF`
 
 initialize() {
 	if (exists("slimgui")){
 	//	setSeed(31272);
-	paramF = 'maize_scale_40.param';
+	paramF = 'dem_eg.param';
 	defineConstant("outPref", "test");
-	sc_min = 0.002;
-	sc_max = 0.1;
+	defineConstant("selcoef", 0.01);
+	defineConstant("mutgen", 500);
 	defineConstant("min_AF", 0.2);
 	defineConstant("max_AF", 0.95);
 	}
@@ -33,13 +33,6 @@ initialize() {
 	defineConstant("N_0", Ne[0]); // N_0
 	defineConstant("last", gen[size(gen)-1]);  // end gen
 	
-	defineConstant("selcoef", runif(1, sc_min, sc_max));
-//	mutgen_early = max(2475-500*exp(-6*(selcoef-0.1)), 2460-180*exp(-7*(selcoef-0.1)));
-//	mutgen_late = min(2485-85*exp(-6.8*(selcoef-0.1)), 2480.0);
-	mutgen_early = max(2500 - 30/(selcoef^0.88), 101.0);
-	mutgen_late = 2500 - 18/(selcoef^0.78);
-	defineConstant("mutgen", rdunif(1, asInteger(mutgen_early), asInteger(mutgen_late)));
-	
 	initializeTreeSeq();
 	initializeMutationRate(0);
 	initializeRecombinationRate(r);
@@ -52,7 +45,6 @@ initialize() {
 1 {
 	defineConstant("simID", getSeed());
 	sim.addSubpop("p1", N_0);
-	p1.setSelfingRate(0.03); // account for inbreeding in maize
 	sim.rescheduleScriptBlock(s1, generations=GOI);
 	sim.rescheduleScriptBlock(s2, mutgen-100, mutgen-100);
 	sim.rescheduleScriptBlock(s3, mutgen, mutgen);
@@ -66,7 +58,6 @@ s1 2 {
 }
 
 s2 3 late() {
-//	sim.outputFull("tmp/slim_" + simID + ".txt"); // modify this b4 deployment
 	sim.treeSeqOutput("tmp/slim_" + simID + ".trees");
 }
 
@@ -86,12 +77,10 @@ s3 3 late() {
 			cat(simID + ": LOST - RESTARTING\n");
 		}
 		// go back to generation `mutgen-100`
-//		sim.readFromPopulationFile("tmp/slim_" + simID + ".txt");
 		sim.readFromPopulationFile("tmp/slim_" + simID + ".trees");
 		
 		// start a newly seeded run
 		setSeed(rdunif(1, 0, asInteger(2^32) - 1));
-		p1.setSelfingRate(0.03); // account for inbreeding in maize
 	}
 }
 
@@ -105,18 +94,15 @@ s4 4 late() {
 		cat(simID + ": FREQ OOB - RESTARTING\n");
 		
 		// go back to generation `mutgen-100`
-//		sim.readFromPopulationFile("tmp/slim_" + simID + ".txt");
 		sim.readFromPopulationFile("tmp/slim_" + simID + ".trees");
 		
 		// start a newly seeded run
 		setSeed(rdunif(1, 0, asInteger(2^32) - 1));
-		p1.setSelfingRate(0.03); // account for inbreeding in maize
 		return;
 	}
 	
 	sim.treeSeqOutput(paste(c(outPref, ".trees"), sep=""));
 	cat(c("%%", selcoef, mutgen, mut_freq, outPref, "\n"), sep='\t'); // make sure the treeseq file is saved before printing meta-data
-//	deleteFile("tmp/slim_" + simID + ".txt");
 	deleteFile("tmp/slim_" + simID + ".trees");
 	sim.simulationFinished();
 }
